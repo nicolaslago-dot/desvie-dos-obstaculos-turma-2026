@@ -64,16 +64,6 @@ A detecção de movimentos corporais será desenvolvida e integrada pela coorden
 - Criatividade nas soluções
 - Comprometimento com as entregas
 
-## Perguntas para refletir
-
-Antes de começar a programar, conversem com sua equipe:
-
-- O que precisamos criar?
-- Quais arquivos serão necessários?
-- O que cada integrante pode desenvolver?
-- Como podemos testar o nosso trabalho?
-- Como nossa parte será integrada ao projeto final?
-
 ## Nosso objetivo
 
 Mais importante do que terminar o jogo é aprender a **desenvolver software de maneira colaborativa**.
