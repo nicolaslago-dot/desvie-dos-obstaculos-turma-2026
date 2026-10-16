@@ -1,4 +1,4 @@
-# Desvie dos Obstáculos — Projeto da Turma 2026
+# Desvie dos Obstáculos Projeto da Turma 2026
 
 ## Sobre o projeto
 
@@ -31,10 +31,10 @@ Para isso, teremos que pensar em diversos aspectos:
 
 ## Tecnologias
 
-- HTML — Estrutura das páginas
-- CSS — Aparência e animações
-- JavaScript — Interações e comportamentos
-- Git e GitHub — Versionamento e colaboração
+- HTML - Estrutura das páginas
+- CSS - Aparência e animações
+- JavaScript - Interações e comportamentos
+- Git e GitHub - Versionamento e colaboração
 
 ## Organização
 
