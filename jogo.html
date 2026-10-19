@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jogo | Corrida do Circuito</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body class="pagina-jogo">
+  <main class="jogo">
+    <canvas id="tela-jogo" aria-label="Corrida em três pistas"></canvas>
+
+    <header class="painel">
+      <span class="marca">CORRIDA DO CIRCUITO</span>
+      <div class="placar">
+        <p>PONTOS <strong id="pontos">000000</strong></p>
+        <p>DISTÂNCIA <strong><span id="distancia">0</span> m</strong></p>
+        <p>NÍVEL <strong id="nivel">01</strong></p>
+      </div>
+      <button id="botao-pausa" type="button">Pausar</button>
+    </header>
+
+    <p class="ajuda">MUDAR DE PISTA</p>
+    <div class="controles-toque" aria-label="Controles de movimento">
+      <button id="botao-esquerda" type="button" aria-label="Mover para a esquerda"></button>
+      <button id="botao-direita" type="button" aria-label="Mover para a direita"></button>
+    </div>
+
+    <section id="painel-pausa" class="pausa" hidden>
+      <div class="caixa-pausa">
+        <h1>PAUSADO</h1>
+        <p>A corrida espera por você.</p>
+        <button class="botao-principal" id="botao-continuar" type="button">CONTINUAR</button>
+        <a href="index.html">VOLTAR AO MENU</a>
+      </div>
+    </section>
+    <div id="efeito-colisao" class="efeito-colisao" aria-hidden="true"></div>
+  </main>
+
+  <script defer src="js/01-estado.js"></script>
+  <script defer src="js/02-movimento.js"></script>
+  <script defer src="js/03-obstaculos.js"></script>
+  <script defer src="js/04-colisoes.js"></script>
+  <script defer src="js/05-pontos.js"></script>
+  <script defer src="js/06-desenho.js"></script>
+  <script defer src="js/07-controles.js"></script>
+  <script defer src="js/08-jogo.js"></script>
+</body>
+</html>
