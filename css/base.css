@@ -1,0 +1,82 @@
+
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #080d18;
+    color: #ffffff;
+}
+
+button, a {
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button {
+    border: none;
+}
+
+a {
+    text-decoration: none;
+}
+
+.pagina-menu {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #080d18, #00ffd055);
+}
+
+.menu {
+    width: 90%;
+    max-width: 600px;
+    padding: 40px 25px;
+}
+
+.menu h1 {
+    color: #00ffd0;
+    font-size: 42px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 15px #00ffd055;
+}
+
+.menu p {
+    color: #b8c5d9;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+.botao-principal {
+    display: inline-block;
+    padding: 15px 35px;
+    border-radius: 8px;
+    background: #00ffd0;
+    color: #080d18;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.botao-principal:hover {
+    background: #75ffe6;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #00ffd055;
+}
+
+
+(max-width: 600px) {
+    .menu h1 {
+        font-size: 30px;
+    }
+
+    .menu p {
+        font-size: 14px;
+    }
+}
