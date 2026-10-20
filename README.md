@@ -38,9 +38,11 @@ Para isso, teremos que pensar em diversos aspectos:
 
 ## Organização
 
-O desenvolvimento será dividido em pequenas equipes.
+O desenvolvimento será dividido em duas equipes: **CSS**, responsável pela interface, e **JavaScript**, responsável pelo funcionamento do jogo. A equipe de JavaScript seguirá aulas guiadas, etapa por etapa; a equipe de CSS já pode montar as telas com autonomia.
 
-Cada equipe ficará responsável por uma parte do projeto, mas todas deverão colaborar para que o resultado final funcione como um único jogo.
+As tarefas, a sequência das aulas de JavaScript e os testes de integração estão em [PLANO_DAS_EQUIPES.md](PLANO_DAS_EQUIPES.md).
+
+As duas equipes deverão colaborar para que o resultado final funcione como um único jogo.
 
 A detecção de movimentos corporais será desenvolvida e integrada pela coordenação técnica.
 
