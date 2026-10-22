@@ -64,9 +64,12 @@ function ambiente() {
 
 // Coordenadas de uma pessoa de frente para uma câmera sem espelhar o vídeo de entrada.
 function pose(tipo = 'neutro') {
-  const pontos = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, visibility: 1 }));
+  const pontos = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, visibility: 0 }));
+  pontos[0] = { x: 0.5, y: 0.15, visibility: 1 };
   pontos[11] = { x: 0.6, y: 0.4, visibility: 1 };
   pontos[12] = { x: 0.4, y: 0.4, visibility: 1 };
+  pontos[13] = { x: 0.6, y: 0.58, visibility: 1 };
+  pontos[14] = { x: 0.4, y: 0.58, visibility: 1 };
   pontos[15] = { x: 0.6, y: 0.8, visibility: 1 };
   pontos[16] = { x: 0.4, y: 0.8, visibility: 1 };
   if (tipo === 'esquerda' || tipo === 'ambos') Object.assign(pontos[15], { x: 0.85, y: 0.4 });
@@ -77,6 +80,33 @@ function pose(tipo = 'neutro') {
 
 async function testar() {
   const a = ambiente();
+  // O corpo escolhe a pista pela posição dos ombros, mesmo sem as mãos.
+  const corpoLateral = a.jogo.criarLeitorCorpo();
+  for (const agora of [0, 200, 400]) assert.equal(corpoLateral.ler(pose(), agora).pronto, false);
+  assert.equal(corpoLateral.ler(pose(), 600).pronto, true);
+  const inclinado = pose().map(p => ({ ...p, x: p.x + 0.09 }));
+  inclinado[15].visibility = inclinado[16].visibility = 0;
+  for (const agora of [700, 800, 900, 1000]) corpoLateral.ler(inclinado, agora);
+  assert.equal(corpoLateral.ler(inclinado, 1100).pista, -1);
+  for (const agora of [1200, 1300, 1400, 1500]) corpoLateral.ler(pose(), agora);
+  assert.equal(corpoLateral.ler(pose(), 1600).pista, 0, 'Voltar à referência escolhe a pista do meio.');
+  const inclinadoD = pose().map(p => ({ ...p, x: p.x - 0.09 }));
+  for (const agora of [1700, 1800, 1900, 2000]) corpoLateral.ler(inclinadoD, agora);
+  assert.equal(corpoLateral.ler(inclinadoD, 2100).pista, 1);
+  assert.equal(corpoLateral.ler(null, 2200).presente, false);
+  assert.equal(corpoLateral.ler(null, 2300).pista, null);
+  corpoLateral.centralizar();
+  for (const agora of [2400, 2600, 2800, 3000]) corpoLateral.ler(inclinadoD, agora);
+  assert.equal(corpoLateral.ler(inclinadoD, 3100).pista, 0, 'Centraliza também quando a pessoa começa fora do meio da imagem.');
+  for (let agora = 3200; agora <= 4200; agora += 100) {
+    const tremor = inclinadoD.map(p => ({ ...p, x: p.x + (agora % 200 ? 0.006 : -0.006) }));
+    assert.equal(corpoLateral.ler(tremor, agora).pista, 0, 'Pequenos tremores não trocam a pista.');
+  }
+  const semReferencia = a.jogo.criarLeitorCorpo();
+  semReferencia.ler(pose(), 0);
+  assert.equal(semReferencia.ler(pose(), 1000).pronto, false, 'Uma lacuna longa não completa a centralização.');
+  semReferencia.ler(null, 1200);
+  assert.equal(semReferencia.ler(pose(), 1400).pronto, false);
   a.jogo.configurarControles(a.estado, () => {});
   const tecla = key => a.eventos.get('keydown')({ key, repeat: false, preventDefault() {} });
   tecla('ArrowLeft');
@@ -101,28 +131,88 @@ async function testar() {
   for (const tipo of ['neutro', 'esquerda', 'direita', 'pular']) {
     assert.equal(a.jogo.identificarGesto(pose(tipo)), tipo);
   }
+  // Uma mão fora do enquadramento não pode cancelar o outro braço.
+  const umBraco = pose('esquerda');
+  umBraco[16].visibility = 0.1;
+  assert.equal(a.jogo.identificarGesto(umBraco), 'esquerda');
+  // O braço pode ficar um pouco abaixo da linha dos ombros.
+  const diagonal = pose('direita');
+  Object.assign(diagonal[16], { x: 0.24, y: 0.6 });
+  assert.equal(a.jogo.identificarGesto(diagonal), 'direita');
   assert.equal(a.jogo.identificarGesto(pose('ambos')), 'aguardar');
   assert.equal(a.jogo.identificarGesto(null), null);
   const baixaConfianca = pose('esquerda');
-  baixaConfianca[15].visibility = 0.2;
+  for (const i of [13, 14, 15, 16]) baixaConfianca[i].visibility = 0.2;
   assert.equal(a.jogo.identificarGesto(baixaConfianca), null);
+  const confiancaModerada = pose('esquerda');
+  confiancaModerada[15].visibility = 0.5;
+  assert.equal(a.jogo.identificarGesto(confiancaModerada), 'esquerda');
+  const semPulso = pose();
+  semPulso[15].visibility = 0.1;
+  Object.assign(semPulso[13], { x: 0.76, y: 0.46 });
+  assert.equal(a.jogo.identificarGesto(semPulso), 'esquerda');
+  semPulso[13].visibility = 0.1;
+  semPulso[19] = { x: 0.8, y: 0.45, visibility: 0.7 };
+  assert.equal(a.jogo.identificarGesto(semPulso), 'esquerda');
+  const cotoveloBaixo = pose();
+  cotoveloBaixo[15].visibility = 0.1;
+  cotoveloBaixo[13].x = 0.7;
+  assert.equal(a.jogo.identificarGesto(cotoveloBaixo), 'neutro', 'Um cotovelo baixo em repouso não move o robô.');
+  const cruzado = pose();
+  Object.assign(cruzado[15], { x: 0.1, y: 0.4 });
+  assert.equal(a.jogo.identificarGesto(cruzado), 'aguardar', 'Não interpreta um braço cruzado como o braço oposto.');
+  const deslocado = pose('esquerda').map(p => ({ ...p, x: p.x + 0.08 }));
+  assert.equal(a.jogo.identificarGesto(deslocado), 'esquerda');
+  const trocado = pose('esquerda');
+  for (const [e, d] of [[11, 12], [13, 14], [15, 16]]) [trocado[e], trocado[d]] = [trocado[d], trocado[e]];
+  assert.equal(a.jogo.identificarGesto(trocado), 'esquerda', 'A direção acompanha a prévia, mesmo se o detector trocar os rótulos.');
+  const retrato = pose('pular').map(p => ({ ...p, y: p.y * 0.6 }));
+  assert.equal(a.jogo.identificarGesto(retrato, 0.8), 'pular');
+  const semOmbro = pose('esquerda');
+  semOmbro[11].visibility = 0.1;
+  assert.equal(a.jogo.identificarGesto(semOmbro), null);
+  const foraDaTela = pose();
+  foraDaTela[15].x = 1.2;
+  assert.notEqual(a.jogo.identificarGesto(foraDaTela), 'esquerda');
 
-  // O esqueleto usa as coordenadas do vídeo e omite pontos sem confiança.
+  // O marcador da cabeça continua disponível; a prévia usa o esqueleto completo.
   const corpo = pose();
-  corpo[15].visibility = 0.1;
-  corpo[16].x = NaN;
-  a.jogo.desenharEsqueleto(a.pincel, corpo, 640, 480);
-  assert.equal(a.desenho.filter(d => d[0] === 'ponto').length, 31);
-  assert.ok(a.desenho.some(d => d[0] === 'inicio' && d[1] === 384 && d[2] === 192));
-  assert.ok(a.desenho.some(d => d[0] === 'linha' && d[1] === 256 && d[2] === 192));
+  a.jogo.desenharCabeca(a.pincel, corpo, 640, 480);
+  const cabecas = a.desenho.filter(d => d[0] === 'ponto');
+  assert.equal(cabecas.length, 1);
+  assert.equal(cabecas[0][1], 320);
+  assert.equal(cabecas[0][2], 72);
+  assert.ok(!a.desenho.some(d => d[0] === 'inicio' || d[0] === 'linha'));
   a.desenho.length = 0;
-  a.jogo.desenharEsqueleto(a.pincel, null, 640, 480);
+  corpo[0].visibility = 0.1;
+  a.jogo.desenharCabeca(a.pincel, corpo, 640, 480);
+  assert.equal(a.desenho.filter(d => d[0] === 'ponto').length, 0);
+  corpo[2] = { x: 0.45, y: 0.1, visibility: 0.8 };
+  corpo[5] = { x: 0.55, y: 0.1, visibility: 0.8 };
+  a.jogo.desenharCabeca(a.pincel, corpo, 640, 480);
+  assert.equal(a.desenho.filter(d => d[0] === 'ponto').length, 1);
+  a.desenho.length = 0;
+  a.jogo.desenharCabeca(a.pincel, null, 640, 480);
   assert.deepEqual(a.desenho, [['limpar', 0, 0, 640, 480]]);
+  const esqueleto = pose();
+  for (const [i, x, y] of [[17, .62, .82], [19, .59, .84], [21, .57, .8],
+    [18, .38, .82], [20, .41, .84], [22, .43, .8], [23, .58, .65], [24, .42, .65]]) {
+    esqueleto[i] = { x, y, visibility: 1 };
+  }
+  a.desenho.length = 0;
+  a.jogo.desenharEsqueleto(a.pincel, esqueleto, 640, 480);
+  assert.ok(a.desenho.filter(d => d[0] === 'ponto').length >= 15, 'Desenha cabeça, braços, mãos e quadris.');
+  assert.ok(a.desenho.some(d => d[0] === 'linha' && d[1] === 371.2 && d[2] === 312), 'Liga o ombro ao quadril.');
+  assert.ok(a.desenho.some(d => d[0] === 'linha' && d[1] === .62 * 640 && d[2] === .82 * 480), 'Liga o pulso aos pontos da mão.');
+  esqueleto[17].visibility = 0.1;
+  a.desenho.length = 0;
+  a.jogo.desenharEsqueleto(a.pincel, esqueleto, 640, 480);
+  assert.ok(!a.desenho.some(d => d[0] === 'ponto' && d[1] === .62 * 640 && d[2] === .82 * 480));
 
   // Uma pose mantida só dispara uma vez; tremores e perda de leitura não disparam.
   const lerGesto = a.jogo.criarLeitorGestos();
   assert.equal(lerGesto('esquerda', 0, true), null);
-  assert.equal(lerGesto('esquerda', 200, true), null); // iniciar com braço estendido
+  assert.equal(lerGesto('esquerda', 200, true), 'esquerda'); // primeiro gesto já pode mover
   lerGesto('neutro', 300, true);
   lerGesto('neutro', 500, true);
   assert.equal(lerGesto('esquerda', 600, true), null);
@@ -135,9 +225,25 @@ async function testar() {
   lerGesto('neutro', 2150, true);
   lerGesto('direita', 2200, false);
   assert.equal(lerGesto('direita', 2400, true), null);
-  assert.equal(lerGesto('direita', 2600, true), null); // recomeçar pede repouso
+  assert.equal(lerGesto('direita', 2600, true), 'direita');
   lerGesto(null, 2700, true);
   assert.equal(lerGesto('pular', 3000, true), null);
+  // Trocar de lado é um novo gesto, sem repetir uma pose mantida.
+  const alternar = a.jogo.criarLeitorGestos();
+  alternar('esquerda', 0, true);
+  assert.equal(alternar('esquerda', 150, true), 'esquerda');
+  assert.equal(alternar('esquerda', 250, true), null);
+  alternar('direita', 300, true);
+  assert.equal(alternar('direita', 450, true), 'direita');
+  assert.equal(alternar('direita', 550, true), null);
+  alternar('neutro', 600, true);
+  alternar('neutro', 750, true);
+  alternar(null, 800, true);
+  alternar('direita', 850, true);
+  assert.equal(alternar('direita', 1000, true), 'direita', 'Uma falha curta não exige baixar os braços outra vez.');
+  alternar(null, 1400, true);
+  alternar('esquerda', 1450, true);
+  assert.equal(alternar('esquerda', 1600, true), 'esquerda', 'Quando as mãos reaparecem, um gesto estável volta a funcionar.');
 
   // O pulo sobe, evita colisão no alto, desce e respeita pausa e fim de jogo.
   const corrida = a.jogo.novoEstado();
@@ -165,6 +271,7 @@ async function testar() {
   assert.equal(a.estado.pausado, true);
   assert.equal(a.video.hidden, false);
   assert.equal(a.elemento('previa-camera').hidden, false);
+  assert.equal(a.elemento('botao-centralizar').hidden, false);
   a.estado.pausado = false;
   a.quadro(100); a.quadro(300);
   assert.equal(a.elemento('esqueleto-camera').width, 640);
@@ -196,6 +303,7 @@ async function testar() {
   assert.equal(a.detector.fechamentos, 1);
   assert.equal(a.video.srcObject, null);
   assert.equal(a.elemento('previa-camera').hidden, true);
+  assert.equal(a.elemento('botao-centralizar').hidden, true);
   assert.equal(a.quadros.size, 0);
 
   // Permissão negada e falha de carregamento permitem tentar novamente.
@@ -252,6 +360,32 @@ async function testar() {
   await g.clicar();
   assert.equal(g.video.srcObject, null);
   assert.match(g.elemento('status-camera').textContent, /localhost ou HTTPS/);
+
+  // Controle do corpo atravessa o detector, a centralização e os movimentos reais.
+  const h = ambiente();
+  await h.clicar();
+  for (const agora of [0, 200, 400, 600]) h.quadro(agora);
+  h.estado.pausado = false;
+  h.detector.detectForVideo = () => ({ landmarks: [inclinado] });
+  for (const agora of [700, 800, 900, 1000, 1100]) h.quadro(agora);
+  assert.equal(h.estado.pista, -1);
+  assert.match(h.elemento('status-camera').textContent, /Corpo: ESQUERDA/);
+  h.quadro(2100);
+  assert.equal(h.estado.pausado, false, 'O corpo continua sendo lido com as mãos ocultas.');
+  h.estado.pausado = true;
+  h.detector.detectForVideo = () => ({ landmarks: [inclinadoD] });
+  for (const agora of [2200, 2300, 2400, 2500, 2600]) h.quadro(agora);
+  assert.equal(h.estado.pista, -1, 'Não muda a pista durante a pausa.');
+  h.estado.pausado = false;
+  h.quadro(2700);
+  assert.equal(h.estado.pista, 1, 'Ao continuar, sincroniza com a posição atual do corpo.');
+  h.elemento('botao-centralizar').eventos.click();
+  assert.equal(h.estado.pausado, true);
+  for (const agora of [2800, 3000, 3200, 3400]) h.quadro(agora);
+  h.estado.pausado = false;
+  h.quadro(3500);
+  assert.equal(h.estado.pista, 0, 'O botão redefine a posição atual como centro.');
+  h.jogo.desligarCamera();
   console.log('Testes de câmera, gestos, pulo e recuperação: OK');
 }
 testar().catch(erro => { console.error(erro); process.exitCode = 1; });

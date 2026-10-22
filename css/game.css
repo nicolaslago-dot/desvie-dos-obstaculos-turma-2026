@@ -171,6 +171,14 @@ body.pagina-jogo {
     background: #00ffd033;
 }
 
+.camera button[hidden] {
+    display: none;
+}
+
+#botao-centralizar {
+    margin-top: 8px;
+}
+
 .camera p {
     margin-top: 10px;
     color: #b8c5d9;

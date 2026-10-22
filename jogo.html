@@ -38,14 +38,15 @@
         <a href="index.html">VOLTAR AO MENU</a>
       </div>
     </section>
-    <aside class="camera" aria-label="Controle pelos braços">
+    <aside class="camera" aria-label="Controle pelo corpo e pelos braços">
       <button id="botao-camera" type="button" aria-pressed="false">Ativar câmera</button>
+      <button id="botao-centralizar" type="button" hidden>Centralizar corpo</button>
       <div id="previa-camera" class="previa-camera" hidden>
         <video id="video-camera" autoplay muted playsinline hidden aria-label="Sua câmera espelhada"></video>
         <canvas id="esqueleto-camera" aria-hidden="true"></canvas>
       </div>
-      <p id="status-camera" role="status">Jogue com os braços ou use as setas.</p>
-      <p class="instrucoes-camera">Estenda um braço para o lado para mudar de pista. Levante os dois para pular. Abaixe os braços antes de repetir.</p>
+      <p id="status-camera" role="status">Jogue com o corpo, com os braços ou use as setas.</p>
+      <p class="instrucoes-camera">Fique parado para centralizar. Incline o tronco para mudar de pista e volte ao centro para a pista do meio. Você também pode estender um braço; levante as duas mãos para pular.</p>
     </aside>
     <div id="efeito-colisao" class="efeito-colisao" aria-hidden="true"></div>
   </main>
