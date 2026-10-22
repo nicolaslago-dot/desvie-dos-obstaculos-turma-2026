@@ -38,11 +38,19 @@ Para isso, teremos que pensar em diversos aspectos:
 
 ## Organização
 
-O desenvolvimento será dividido em duas equipes: **CSS**, responsável pela interface, e **JavaScript**, responsável pelo funcionamento do jogo. A equipe de JavaScript seguirá aulas guiadas, etapa por etapa; a equipe de CSS já pode montar as telas com autonomia.
+O desenvolvimento será dividido em duas equipes de **CSS**, responsáveis pela interface, e três equipes de **JavaScript**, responsáveis pelo funcionamento do jogo. Cada equipe tem seus próprios arquivos e branch. As equipes de CSS podem montar suas partes com autonomia; as equipes de JavaScript seguirão as aulas guiadas, etapa por etapa.
+
+| Equipe | Branch | Arquivos |
+| --- | --- | --- |
+| CSS Interface | `equipe/css-interface` | `css/base.css`, `css/menu.css` |
+| CSS Jogo e Resultado | `equipe/css-jogo-resultado` | `css/game.css`, `css/gameover.css` |
+| JS Lógica do Jogo | `equipe/js-logica` | `js/01-estado.js` a `js/04-colisoes.js` |
+| JS Pontuação e Desenho | `equipe/js-visual` | `js/05-pontos.js`, `js/06-desenho.js` |
+| JS Controles e Partida | `equipe/js-controles` | `js/07-controles.js` a `js/09-resultado.js` |
 
 As tarefas, a sequência das aulas de JavaScript e os testes de integração estão em [PLANO_DAS_EQUIPES.md](PLANO_DAS_EQUIPES.md).
 
-As duas equipes deverão colaborar para que o resultado final funcione como um único jogo.
+As equipes deverão colaborar para que o resultado final funcione como um único jogo.
 
 A detecção de movimentos corporais será desenvolvida e integrada pela coordenação técnica.
 
@@ -56,6 +64,34 @@ A detecção de movimentos corporais será desenvolvida e integrada pela coorden
 6. Ao concluir uma tarefa, abram um Pull Request.
 7. Pesquisem e tentem resolver os desafios antes de solicitar a solução pronta.
 8. Respeitem o trabalho dos colegas.
+
+### Criar ou acessar a branch da equipe
+
+Uma pessoa da equipe cria a branch e a publica no GitHub. O exemplo abaixo usa `equipe/css-interface`; para outra equipe, substitua esse nome pelo da tabela do [PLANO_DAS_EQUIPES.md](PLANO_DAS_EQUIPES.md).
+
+```bash
+git switch main
+git pull origin main
+git switch -c equipe/css-interface
+git push -u origin equipe/css-interface
+```
+
+Os demais integrantes da mesma equipe não criam outra branch: eles baixam a branch compartilhada e passam a usá-la.
+
+```bash
+git fetch origin
+git switch --track origin/equipe/css-interface
+```
+
+Depois de trabalhar, salvem as alterações e enviem para a branch da equipe:
+
+```bash
+git add css/base.css css/menu.css
+git commit -m "Estiliza a interface inicial"
+git push
+```
+
+Troquem os arquivos do exemplo pelos arquivos da equipe indicados no plano. Antes de adicionar, confiram as alterações com `git status`. Ao concluir a tarefa, abram um Pull Request da branch da equipe para `main`.
 
 ## O que esperamos das equipes?
 

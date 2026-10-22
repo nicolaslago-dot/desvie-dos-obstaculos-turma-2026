@@ -18,13 +18,16 @@
         <p>DISTÂNCIA <strong><span id="distancia">0</span> m</strong></p>
         <p>NÍVEL <strong id="nivel">01</strong></p>
       </div>
-      <button id="botao-pausa" type="button">Pausar</button>
+      <div class="acoes-jogo">
+        <button id="botao-som" type="button" aria-pressed="false">Ativar som</button>
+        <button id="botao-pausa" type="button">Pausar</button>
+      </div>
     </header>
 
-    <p class="ajuda">MUDAR DE PISTA</p>
-    <div class="controles-toque" aria-label="Controles de movimento">
-      <button id="botao-esquerda" type="button" aria-label="Mover para a esquerda"></button>
-      <button id="botao-direita" type="button" aria-label="Mover para a direita"></button>
+    <p class="ajuda">← → MUDAR DE PISTA · ↑ OU ESPAÇO PARA PULAR · P PARA PAUSAR</p>
+    <div id="painel-contagem" class="contagem" hidden role="status" aria-live="polite" aria-atomic="true">
+      <span>PREPARE-SE</span>
+      <strong id="numero-contagem">3</strong>
     </div>
 
     <section id="painel-pausa" class="pausa" hidden>
@@ -35,6 +38,15 @@
         <a href="index.html">VOLTAR AO MENU</a>
       </div>
     </section>
+    <aside class="camera" aria-label="Controle pelos braços">
+      <button id="botao-camera" type="button" aria-pressed="false">Ativar câmera</button>
+      <div id="previa-camera" class="previa-camera" hidden>
+        <video id="video-camera" autoplay muted playsinline hidden aria-label="Sua câmera espelhada"></video>
+        <canvas id="esqueleto-camera" aria-hidden="true"></canvas>
+      </div>
+      <p id="status-camera" role="status">Jogue com os braços ou use as setas.</p>
+      <p class="instrucoes-camera">Estenda um braço para o lado para mudar de pista. Levante os dois para pular. Abaixe os braços antes de repetir.</p>
+    </aside>
     <div id="efeito-colisao" class="efeito-colisao" aria-hidden="true"></div>
   </main>
 
@@ -45,6 +57,8 @@
   <script defer src="js/05-pontos.js"></script>
   <script defer src="js/06-desenho.js"></script>
   <script defer src="js/07-controles.js"></script>
+  <script defer src="js/10-camera.js"></script>
+  <script defer src="js/11-audio.js"></script>
   <script defer src="js/08-jogo.js"></script>
 </body>
 </html>
