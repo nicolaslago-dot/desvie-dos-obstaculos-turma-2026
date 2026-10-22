@@ -70,6 +70,40 @@ a {
     background: #75ffe6;
 }
 
+.creditos {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid #00ffd033;
+    color: #b8c5d9;
+    font-size: 14px;
+}
+
+.creditos summary {
+    width: fit-content;
+    margin: auto;
+    color: #00ffd0;
+    cursor: pointer;
+}
+
+.creditos[open] summary {
+    margin-bottom: 18px;
+}
+
+.creditos p {
+    font-size: 14px;
+}
+
+.creditos dt {
+    margin-top: 12px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.creditos dd {
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
 @media (max-width: 600px) {
     .menu h1 {
         font-size: 30px;
