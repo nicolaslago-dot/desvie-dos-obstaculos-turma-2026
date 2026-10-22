@@ -32,7 +32,6 @@ a {
   align-items: center;
   text-align: center;
   background: linear-gradient(135deg, #080d18, #00ffd055);
-  padding: 24px 12px;
 }
 
 .resultado {
@@ -40,16 +39,7 @@ a {
   max-width: 600px;
   padding: 40px 25px;
   border-radius: 12px;
-  background: #080d18cc;
-  border: 1px solid #00ffd055;
-}
 
-.robo-caido {
-  display: block;
-  width: min(190px, 55%);
-  height: auto;
-  margin: 0 auto 22px;
-  object-fit: contain;
 }
 
 .resultado h1 {
@@ -92,7 +82,7 @@ a {
 .botao-secundario {
   background: #1a2433;
   color: #ffffff;
-}
+
 
 .botao-principal:hover {
   background: #75ffe6;
@@ -103,23 +93,4 @@ a {
   background: #273548;
 
 }
-
-.acoes a:focus-visible {
-  outline: 3px solid #ffffff;
-  outline-offset: 4px;
-}
-
-@media (max-width: 600px) {
-  .resultado {
-    width: 100%;
-    padding: 24px 18px;
-  }
-
-  .resultado h1 {
-    font-size: 30px;
-  }
-
-  .resultado p {
-    font-size: 16px;
-  }
 }
