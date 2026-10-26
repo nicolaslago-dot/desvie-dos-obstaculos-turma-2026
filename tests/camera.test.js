@@ -34,7 +34,10 @@ function ambiente() {
   }
   const contexto = vm.createContext({
     window: { isSecureContext: true, addEventListener: (tipo, fn) => eventos.set(tipo, fn) },
-    document: { hidden: false, getElementById: elemento, addEventListener: (tipo, fn) => eventos.set(tipo, fn) },
+    document: {
+      hidden: false, getElementById: elemento, querySelector: seletor => seletor === '.camera' ? elemento('painel-camera') : null,
+      addEventListener: (tipo, fn) => eventos.set(tipo, fn)
+    },
     navigator: { mediaDevices: {} },
     performance: { now: () => tempo },
     requestAnimationFrame: fn => { quadros.set(++id, fn); return id; },
