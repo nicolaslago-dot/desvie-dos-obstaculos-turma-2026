@@ -11,24 +11,68 @@
   <main class="menu">
     <h1>Corrida do Circuito</h1>
     <p>Desvie dos obstáculos e corra o mais longe que puder.</p>
+    <p>Recolha as 6 peças do robô para ganhar uma vida extra!</p>
     <p>Use setas para mudar de pista e pular, ou ative a câmera e controle com os braços.</p>
-    <a class="botao-principal" href="jogo.html">Jogar</a>
+    <nav class="acoes-menu" aria-label="Navegação">
+      <a class="botao-principal" href="jogo.html">Jogar</a>
+      <a class="botao-secundario" href="ranking.html">Ver ranking</a>
+    </nav>
     <details class="creditos">
       <summary>Créditos da turma</summary>
-      <p>Turma do Vespertino de Tecnologia e Internet · 2026</p>
-      <dl>
-        <dt>Arte e interface</dt>
-        <dd>Equipes de CSS e criação dos sprites </dd>
-        <p>Henrique, Augusto, Pedro, Lucas, zaqueu, Sibele, Micael, Vinicius, Thiago</p>
-        <dt>Programação</dt>
-        <dd>Equipes de lógica, desenho e controles</dd>
-        <p>Anna, Giovanna, Giovanny, Helena, Mayara</p>
-        <dt>Orientação e integração</dt>
-        <dd>Professor e coordenação técnica</dd>
-        <p>Nicolas</p>
-        <dt>Música e efeitos</dt>
-        <dd>Trilha e efeitos originais do jogo</dd>
-        <p>Augusto, Pedro, Lucas, Henrique, Zaqueu</p>
+      <p class="creditos-turma">Turma do Vespertino de Tecnologia e Internet <span>·</span> 2026</p>
+      <dl class="creditos-lista">
+        <div class="credito-grupo">
+          <dt>Arte e interface</dt>
+          <dd>Criação dos estilos visuais e dos sprites</dd>
+          <dd>
+            <ul class="creditos-nomes">
+              <li>Augusto</li>
+              <li>Henrique</li>
+              <li>Lucas</li>
+              <li>Micael</li>
+              <li>Pedro</li>
+              <li>Sibele</li>
+              <li>Thiago</li>
+              <li>Vinicius</li>
+              <li>Zaqueu</li>
+            </ul>
+          </dd>
+        </div>
+        <div class="credito-grupo">
+          <dt>Música e efeitos</dt>
+          <dd>Composição da trilha e criação dos efeitos sonoros</dd>
+          <dd>
+            <ul class="creditos-nomes">
+              <li>Augusto</li>
+              <li>Henrique</li>
+              <li>Lucas</li>
+              <li>Pedro</li>
+              <li>Zaqueu</li>
+            </ul>
+          </dd>
+        </div>
+        <div class="credito-grupo">
+          <dt>Orientação e integração</dt>
+          <dd>Acompanhamento e integração do projeto</dd>
+          <dd>
+            <ul class="creditos-nomes">
+              <li>Nicolas</li>
+            </ul>
+          </dd>
+        </div>
+        <div class="credito-grupo">
+          <dt>Programação</dt>
+          <dd>Desenvolvimento da lógica e dos controles</dd>
+          <dd>
+            <ul class="creditos-nomes">
+              <li>Anna</li>
+              <li>Giovanna</li>
+              <li>Giovanny</li>
+              <li>Helena</li>
+              <li>Mayara</li>
+            </ul>
+          </dd>
+        </div>
       </dl>
     </details>
   </main>
