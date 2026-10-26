@@ -11,7 +11,8 @@ window.Jogo.criarDesenho = function (canvas) {
     'sprites/helperbot/correndo2.png',
     'sprites/helperbot/carregando_pulo.png',
     'sprites/helperbot/pulando.png',
-    ...window.Jogo.tiposObstaculo
+    ...window.Jogo.tiposObstaculo,
+    ...window.Jogo.partesRobo.map(parte => parte.imagem)
   ];
   for (const arquivo of arquivos) {
     imagens[arquivo] = new Image();
@@ -110,7 +111,31 @@ window.Jogo.criarDesenho = function (canvas) {
     else if (estado.tempoPulo > 0 || estado.alturaPulo > 0) quadro = 'pulando';
     const arquivo = 'sprites/helperbot/' + quadro + '.png';
     const alturaSprite = tamanho * (quadro === 'pulando' ? 1.7 : 1.3);
+    if (estado.invulneravel > 0) {
+      pincel.globalAlpha = movimentoReduzido?.matches ? 0.65 : (Math.floor(estado.tempo * 6) % 2 ? 0.4 : 1);
+    }
     desenharSprite(arquivo, lugar.x, lugar.y - 30 - estado.alturaPulo * tamanho * 1.6, alturaSprite, alturaSprite);
+    pincel.globalAlpha = 1;
+  }
+
+  function desenharPecas(estado) {
+    for (const peca of estado.pecas) {
+      const parte = window.Jogo.partesRobo.find(parte => parte.id === peca.parte);
+      const lugar = posicao(peca.z, peca.pista);
+      const tamanho = Math.min(66, Math.max(5, lugar.larguraPista * 0.32));
+      const flutuar = movimentoReduzido?.matches ? 0 : Math.sin(estado.tempo * 3) * tamanho * 0.06;
+      // A moldura amarela distingue os coletáveis dos obstáculos.
+      pincel.strokeStyle = '#ffe76b';
+      pincel.lineWidth = 2;
+      pincel.beginPath();
+      pincel.moveTo(lugar.x, lugar.y - tamanho * 1.5 + flutuar);
+      pincel.lineTo(lugar.x + tamanho * 0.65, lugar.y - tamanho * 0.75 + flutuar);
+      pincel.lineTo(lugar.x, lugar.y + flutuar);
+      pincel.lineTo(lugar.x - tamanho * 0.65, lugar.y - tamanho * 0.75 + flutuar);
+      pincel.lineTo(lugar.x, lugar.y - tamanho * 1.5 + flutuar);
+      pincel.stroke();
+      desenharSprite(parte.imagem, lugar.x, lugar.y - tamanho * 0.25 + flutuar, tamanho, tamanho);
+    }
   }
 
   window.addEventListener('resize', ajustarTela);
@@ -120,6 +145,7 @@ window.Jogo.criarDesenho = function (canvas) {
     pincel.clearRect(0, 0, largura, altura);
     desenharPistas(estado);
     desenharObstaculos(estado);
+    desenharPecas(estado);
     desenharRobo(estado);
   };
 };

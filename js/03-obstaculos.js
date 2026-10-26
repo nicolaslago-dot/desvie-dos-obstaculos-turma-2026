@@ -17,9 +17,11 @@ function criarObstaculo(estado, pista) {
 
 window.Jogo.atualizarObstaculos = function (estado, segundos) {
   for (const obstaculo of estado.obstaculos) {
+    obstaculo.zAnterior = obstaculo.z;
     obstaculo.z += estado.velocidade * segundos;
   }
-  estado.obstaculos = estado.obstaculos.filter(obstaculo => obstaculo.z < 1);
+  // Continua desenhando o obstáculo um pouco depois de passar pelo robô.
+  estado.obstaculos = estado.obstaculos.filter(obstaculo => obstaculo.z <= 1.08);
 
   estado.proximoObstaculo -= segundos;
   if (estado.proximoObstaculo > 0) return;
@@ -27,10 +29,15 @@ window.Jogo.atualizarObstaculos = function (estado, segundos) {
   const primeiraPista = Math.floor(Math.random() * 3) - 1;
   criarObstaculo(estado, primeiraPista);
 
-  if (estado.nivel > 1 && Math.random() < 0.3) {
+  const pistasOcupadas = [primeiraPista];
+  if (Math.random() < estado.chanceDupla) {
     const livres = [-1, 0, 1].filter(pista => pista !== primeiraPista);
-    criarObstaculo(estado, livres[Math.floor(Math.random() * livres.length)]);
+    const segundaPista = livres[Math.floor(Math.random() * livres.length)];
+    criarObstaculo(estado, segundaPista);
+    pistasOcupadas.push(segundaPista);
   }
 
-  estado.proximoObstaculo = Math.max(0.95, 1.75 - (estado.nivel - 1) * 0.07);
+  // A peça acompanha a pista livre deste grupo, nunca um obstáculo.
+  window.Jogo.criarPeca(estado, pistasOcupadas);
+  estado.proximoObstaculo = estado.intervaloObstaculos;
 };

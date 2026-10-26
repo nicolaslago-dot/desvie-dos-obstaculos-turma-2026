@@ -12,7 +12,7 @@ const armazenamento = {
 };
 const contexto = vm.createContext({ window: {}, localStorage: armazenamento });
 
-for (const nome of ['01-estado', '02-movimento', '03-obstaculos', '04-colisoes', '05-pontos']) {
+for (const nome of ['01-estado', '02-movimento', '03-obstaculos', '04-colisoes', '05-pontos', 'sistemas/dificuldade', 'sistemas/coleta']) {
   vm.runInContext(ler('js/' + nome + '.js'), contexto);
 }
 const jogo = contexto.window.Jogo;
@@ -47,12 +47,19 @@ for (let i = 0; i < 100; i++) {
   assert.equal(new Set(estado.obstaculos.map(o => o.pista)).size, estado.obstaculos.length);
 }
 
-// O obstáculo some no quadro em que passa pelo robô.
+// Mantém a janela de colisão e só remove depois de passar completamente.
 estado.proximoObstaculo = 10;
 estado.obstaculos = [{ pista: -1, z: 0.99 }, { pista: 1, z: 0.999 }];
 jogo.atualizarObstaculos(estado, 0.01);
-assert.equal(estado.obstaculos.length, 1);
+assert.equal(estado.obstaculos.length, 2);
 assert.equal(estado.obstaculos[0].pista, -1);
+estado.obstaculos = [{ pista: 0, z: 0.999 }];
+jogo.atualizarObstaculos(estado, 0.05);
+assert.equal(jogo.bateu(estado), false, 'A pista ainda é a direita.');
+estado.pista = 0;
+assert.equal(jogo.bateu(estado), true, 'Não atravessa a janela de colisão entre quadros.');
+jogo.atualizarObstaculos(estado, 0.3);
+assert.equal(estado.obstaculos.length, 0);
 
 // Colisão depende da pista e da distância.
 estado.pista = 0;
@@ -68,19 +75,22 @@ assert.ok(corrida.nivel > 1 && corrida.velocidade > 0.32);
 assert.equal(corrida.pontos, Math.floor(corrida.distancia * 10));
 const resultado = jogo.salvarResultado(corrida);
 assert.equal(resultado.recorde, Math.floor(corrida.distancia));
+assert.equal(resultado.nivel, corrida.nivel);
+assert.ok(resultado.partida);
 const curta = jogo.novoEstado();
 curta.distancia = 10;
 assert.equal(jogo.salvarResultado(curta).recorde, resultado.recorde);
 
 // Todos os arquivos usados pelo HTML e pelos sprites devem existir.
-for (const pagina of ['index.html', 'jogo.html', 'gameover.html']) {
+for (const pagina of ['index.html', 'jogo.html', 'gameover.html', 'ranking.html']) {
   for (const [, arquivo] of ler(pagina).matchAll(/(?:src|href)="([^"]+)"/g)) {
     assert.ok(fs.existsSync(path.join(raiz, arquivo)), arquivo);
   }
 }
 for (const [pagina, nomes] of [
-  ['jogo.html', ['07-controles', '08-jogo', '10-camera', '11-audio']],
-  ['gameover.html', ['09-resultado']]
+  ['jogo.html', ['07-controles', '08-jogo', 'sistemas/camera', 'sistemas/audio']],
+  ['gameover.html', ['09-resultado']],
+  ['ranking.html', ['ranking-pagina', 'sistemas/ranking']]
 ]) {
   const html = ler(pagina);
   for (const nome of nomes) {
@@ -95,7 +105,8 @@ for (const arquivo of [
   'sprites/helperbot/correndo2.png',
   'sprites/helperbot/carregando_pulo.png',
   'sprites/helperbot/pulando.png',
-  'sprites/fundo_jogo.png'
+  ...jogo.partesRobo.map(parte => parte.imagem),
+  'sprites/cenarios/fundo_jogo.png'
 ]) {
   assert.ok(fs.existsSync(path.join(raiz, arquivo)), arquivo);
 }
@@ -175,15 +186,19 @@ function elemento(id) {
   if (!elementos.has(id)) {
     elementos.set(id, {
       textContent: '', hidden: false,
-      addEventListener: vazio, setAttribute: vazio,
-      classList: { add: vazio }
+      addEventListener: vazio, setAttribute: vazio, appendChild: vazio,
+      classList: { add: vazio, toggle: vazio }
     });
   }
   return elementos.get(id);
 }
 let proximoQuadro;
 let fimAgendado;
-contexto.document = { getElementById: elemento, addEventListener: vazio, createElement: criarMascara };
+contexto.document = { getElementById: elemento, querySelector: () => ({ hidden: true }), addEventListener: vazio, createElement: tipo => tipo === 'canvas' ? criarMascara() : { classList: { toggle: vazio } } };
+contexto.Audio = class {
+  play() { return Promise.resolve(); }
+  pause() {}
+};
 let horario = 0;
 contexto.performance = { now: () => horario };
 contexto.requestAnimationFrame = funcao => { proximoQuadro = funcao; };
@@ -191,8 +206,8 @@ contexto.setTimeout = funcao => { fimAgendado = funcao; };
 contexto.URLSearchParams = URLSearchParams;
 contexto.window.location = { href: '' };
 vm.runInContext(ler('js/07-controles.js'), contexto);
-vm.runInContext(ler('js/10-camera.js'), contexto);
-vm.runInContext(ler('js/11-audio.js'), contexto);
+vm.runInContext(ler('js/sistemas/camera.js'), contexto);
+vm.runInContext(ler('js/sistemas/audio.js'), contexto);
 vm.runInContext(ler('js/08-jogo.js'), contexto);
 function quadro(agora) { horario = agora; proximoQuadro(agora); }
 assert.match(ler('jogo.html'), /id="botao-pausa"[^>]*>Pausar<\/button>/);
@@ -224,11 +239,23 @@ vm.runInContext('pausar(false)', contexto);
 quadro(12016);
 assert.equal(elemento('painel-contagem').hidden, true);
 quadro(12032);
+// Coleta e vida extra atravessam o loop real e atualizam o placar.
+for (const parte of jogo.partesRobo) {
+  contexto.parteAtual = parte.id;
+  vm.runInContext('estado.pecas = [{ parte: parteAtual, pista: estado.pista, z: 0.96 }]', contexto);
+  quadro(horario + 16);
+}
+assert.equal(elemento('vidas').textContent, 2);
+assert.equal(elemento('total-pecas').textContent, '0/6');
 vm.runInContext(
   "estado.obstaculos = [{ pista: estado.pista, z: 0.98, imagem: window.Jogo.tiposObstaculo[0] }]",
   contexto
 );
-quadro(12048);
+quadro(horario + 16);
+assert.equal(elemento('vidas').textContent, 1);
+assert.equal(fimAgendado, undefined, 'A vida extra mantém a corrida em andamento.');
+vm.runInContext('estado.invulneravel = 0; estado.obstaculos[0].z = 0.98', contexto);
+quadro(horario + 16);
 assert.equal(typeof fimAgendado, 'function');
 fimAgendado();
 assert.ok(contexto.window.location.href.startsWith('gameover.html?'));
@@ -238,7 +265,11 @@ const contextoResultado = vm.createContext({
   window: { location: { search: '?' + contexto.window.location.href.split('?')[1] } },
   document: {
     getElementById(id) {
-      if (!elementosResultado.has(id)) elementosResultado.set(id, { textContent: '' });
+      if (!elementosResultado.has(id)) elementosResultado.set(id, {
+        textContent: '', value: '', children: [],
+        addEventListener: vazio, replaceChildren() { this.children = []; },
+        appendChild(item) { this.children.push(item); }
+      });
       return elementosResultado.get(id);
     }
   },
@@ -247,5 +278,15 @@ const contextoResultado = vm.createContext({
 });
 vm.runInContext(ler('js/09-resultado.js'), contextoResultado);
 assert.equal(elementosResultado.get('pontuacao-final').textContent, elemento('pontos').textContent);
+assert.equal(elementosResultado.get('nivel-final').textContent, Number(elemento('nivel').textContent));
+const linkRanking = elementosResultado.get('link-ranking').href;
+assert.ok(linkRanking.startsWith('ranking.html?'));
+const dadosRanking = new URLSearchParams(linkRanking.split('?')[1]);
+assert.equal(dadosRanking.get('nivel'), String(Number(elemento('nivel').textContent)));
+assert.equal(dadosRanking.get('distancia'), String(Math.floor(vm.runInContext('estado.distancia', contexto))));
+assert.ok(dadosRanking.get('partida'));
+assert.ok(!ler('index.html').includes('ranking-corpo'));
+assert.ok(!ler('gameover.html').includes('formulario-ranking'));
+assert.ok(!ler('gameover.html').includes('ranking-corpo'));
 
 console.log('Testes do jogo: OK');

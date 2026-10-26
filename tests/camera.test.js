@@ -40,7 +40,7 @@ function ambiente() {
     requestAnimationFrame: fn => { quadros.set(++id, fn); return id; },
     cancelAnimationFrame: chave => quadros.delete(chave)
   });
-  for (const nome of ['01-estado', '02-movimento', '04-colisoes', '07-controles', '10-camera']) {
+  for (const nome of ['01-estado', '02-movimento', '04-colisoes', '07-controles', 'sistemas/camera']) {
     vm.runInContext(ler('js/' + nome + '.js'), contexto);
   }
   const jogo = contexto.window.Jogo;

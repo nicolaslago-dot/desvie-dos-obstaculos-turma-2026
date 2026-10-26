@@ -29,6 +29,49 @@ Para isso, teremos que pensar em diversos aspectos:
 
 **Não existe uma única solução correta.** Cada equipe deverá pesquisar, experimentar e justificar suas escolhas.
 
+## Executar e testar o jogo
+
+Abra `index.html` ou sirva a pasta com `python -m http.server 8000` e acesse
+`http://localhost:8000`. A câmera precisa de localhost ou HTTPS.
+
+A corrida mantém três pistas, salto, teclado e controle pelo corpo. Cada conjunto
+de seis peças diferentes concede uma vida extra; o painel mostra as partes já
+coletadas. Após usar uma vida, o robô fica protegido por 2,5 segundos. Um novo
+conjunto pode ser coletado para ganhar outra vida.
+
+A dificuldade aumenta suavemente com a distância: velocidade de 0,32 até 0,56,
+intervalo entre grupos de 1,75 até 1,15 segundos e, mais adiante, grupos de dois
+obstáculos. Sempre há uma pista livre por grupo. As peças surgem nessas pistas.
+Esses limites ficam em `js/sistemas/dificuldade.js`.
+
+O som começa ativado em cada partida. Quando o navegador exige interação, uma
+tecla ou toque comum libera a música. Veja `midia/LEIA-ME.md`.
+
+Ao terminar a corrida, a tela final mostra a distância e o nível alcançado.
+Clique em **Registrar no ranking** para abrir `ranking.html`, digitar seu nome
+ou apelido (até 24 caracteres) e clicar em **Registrar**. A página do ranking
+também pode ser acessada pelo botão **Ver ranking** no menu. O top 10 é ordenado pela maior
+distância e, em caso de empate, pelo maior nível. Cada partida pode aparecer uma
+vez; o mesmo jogador pode registrar novas corridas. Os resultados ficam salvos
+somente neste navegador e dispositivo, sem servidor ou ranking online.
+
+```text
+js/                  Estado, movimento, obstáculos, colisão, pontos, desenho e partida
+js/sistemas/         Áudio, câmera, coleta e dificuldade
+sprites/helperbot/   Animações do personagem
+sprites/pecas-robo/   Seis PNGs separados e transparentes dos coletáveis
+sprites/computadores/ Obstáculos de computadores
+sprites/hologramas/  Obstáculos e alertas holográficos
+sprites/cenarios/    Fundo original da corrida
+midia/musicas/       Trilhas
+midia/efeitos/       Sons de ação
+tests/               Testes sem dependências externas
+```
+
+Verificações: `node tests/game.test.js`, `node tests/coleta.test.js`,
+`node tests/audio.test.js`, `node tests/camera.test.js`, `node tests/ranking.test.js`
+e `node tests/colisoes.test.js`.
+
 ## Tecnologias
 
 - HTML - Estrutura das páginas

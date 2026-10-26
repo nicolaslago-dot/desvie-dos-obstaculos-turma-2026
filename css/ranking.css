@@ -1,0 +1,106 @@
+.pagina-ranking {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 12px;
+  background: linear-gradient(135deg, #080d18, #00ffd055);
+}
+
+.cartao-ranking {
+  width: 100%;
+  max-width: 640px;
+  padding: 32px 24px;
+  border: 1px solid #00ffd055;
+  border-radius: 12px;
+  background: #080d18cc;
+}
+
+.marca-ranking { margin-bottom: 8px; color: #b8c5d9; font-size: 12px; letter-spacing: 2px; }
+.cartao-ranking h1 { margin-bottom: 12px; color: #00ffd0; font-size: clamp(28px, 6vw, 36px); }
+.ranking-descricao { color: #b8c5d9; font-size: 14px; line-height: 1.5; }
+.resumo-partida { margin-bottom: 16px; color: #ffef0a; font-weight: bold; }
+.acoes-ranking { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.acoes-ranking a { flex: 1 1 180px; text-align: center; }
+.botao-secundario { padding: 15px 25px; border-radius: 8px; background: #1a2433; color: #ffffff; font-weight: bold; }
+.botao-secundario:hover { background: #273548; }
+.acoes-ranking a:focus-visible { outline: 3px solid #ffffff; outline-offset: 4px; }
+
+.ranking {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid #00ffd033;
+  text-align: left;
+}
+
+.ranking h2 {
+  margin-bottom: 8px;
+  color: #00ffd0;
+  font-size: 22px;
+}
+
+.ranking .ranking-descricao,
+.ranking .ranking-mensagem {
+  margin-bottom: 12px;
+  color: #b8c5d9;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ranking-mensagem:empty { display: none; }
+
+.ranking-rolagem { overflow-x: auto; }
+
+.ranking table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.ranking th,
+.ranking td {
+  padding: 12px 6px;
+  border-bottom: 1px solid #ffffff14;
+  text-align: right;
+}
+
+.ranking th { color: #b8c5d9; font-size: 12px; }
+.ranking th:nth-child(2),
+.ranking td:nth-child(2) { text-align: left; overflow-wrap: anywhere; }
+.ranking td:first-child { color: #00ffd0; font-weight: bold; }
+.ranking td:nth-child(3) { white-space: nowrap; }
+.ranking .minha-partida { background: #00ffd018; }
+
+.formulario-ranking {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #00ffd055;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.formulario-ranking label { display: block; margin-bottom: 10px; font-weight: bold; }
+.registro-campos { display: flex; gap: 10px; flex-wrap: wrap; }
+.registro-campos input {
+  flex: 1 1 160px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #65758a;
+  border-radius: 8px;
+  background: #080d18;
+  color: #ffffff;
+  padding: 13px;
+  font: inherit;
+}
+
+.registro-campos .botao-principal { margin: 0; padding: 13px 18px; }
+.registro-campos :focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
+.registro-campos :disabled { opacity: 0.65; cursor: default; }
+.formulario-ranking .mensagem-registro { margin: 12px 0 0; font-size: 14px; line-height: 1.5; }
+.mensagem-registro:empty { display: none; }
+
+@media (max-width: 420px) {
+  .registro-campos .botao-principal { width: 100%; }
+  .formulario-ranking { padding: 16px; }
+  .ranking th, .ranking td { padding: 10px 4px; }
+}

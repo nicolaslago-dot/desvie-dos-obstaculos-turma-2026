@@ -229,6 +229,7 @@ window.Jogo.desenharEsqueleto = function (pincel, pontos, largura, altura) {
 
 window.Jogo.configurarCamera = function (estado, pausar) {
   const botao = document.getElementById('botao-camera');
+  const painel = document.querySelector('.camera');
   const video = document.getElementById('video-camera');
   const status = document.getElementById('status-camera');
   const previa = document.getElementById('previa-camera');
@@ -247,7 +248,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
     if (status.textContent !== texto) status.textContent = texto;
   }
 
-  function desligar(mensagem = 'Câmera desligada. Use as setas ou ative novamente.') {
+  function desligar(mensagem = 'Câmera desligada. Use as setas ou ative novamente.', manterPainel = false) {
     sessao++;
     ligado = false;
     if (quadro !== null) cancelAnimationFrame(quadro);
@@ -265,6 +266,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
     ultimaPistaCorpo = 0;
     botao.textContent = 'Ativar câmera';
     botao.setAttribute('aria-pressed', 'false');
+    painel.hidden = !manterPainel;
     avisar(mensagem);
   }
   window.Jogo.desligarCamera = desligar;
@@ -284,6 +286,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
       return;
     }
     if (estado.acabou) return;
+    painel.hidden = false;
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       avisar('Para usar a câmera, abra o jogo em localhost ou HTTPS num navegador compatível.');
       return;
@@ -308,7 +311,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
         trilha.addEventListener('ended', () => {
           if (atual !== sessao) return;
           pausar(true);
-          desligar('A câmera foi desconectada. Conecte e ative novamente.');
+          desligar('A câmera foi desconectada. Conecte e ative novamente.', true);
         });
       }
       video.srcObject = fluxo;
@@ -376,7 +379,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
           quadro = requestAnimationFrame(observar);
         } catch (erro) {
           pausar(true);
-          desligar('Não foi possível ler os movimentos. Ative a câmera para tentar novamente.');
+          desligar('Não foi possível ler os movimentos. Ative a câmera para tentar novamente.', true);
         }
       }
       quadro = requestAnimationFrame(observar);
@@ -387,7 +390,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
         NotFoundError: 'Nenhuma câmera encontrada. Conecte uma câmera e tente novamente.',
         NotReadableError: 'A câmera está ocupada. Feche outros aplicativos que a estejam usando.'
       };
-      desligar(mensagens[erro.name] || 'Não foi possível iniciar a câmera. Confira a internet e tente novamente.');
+      desligar(mensagens[erro.name] || 'Não foi possível iniciar a câmera. Confira a internet e tente novamente.', true);
     }
   });
   window.addEventListener('pagehide', () => desligar());

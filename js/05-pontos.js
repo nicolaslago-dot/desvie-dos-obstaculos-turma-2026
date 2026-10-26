@@ -5,8 +5,7 @@ window.Jogo.atualizarPontos = function (estado, segundos) {
   estado.distancia += estado.velocidade * segundos * 48;
   estado.pontos = Math.floor(estado.distancia * 10);
 
-  estado.nivel = 1 + Math.floor(estado.distancia / 150);
-  estado.velocidade = Math.min(0.56, 0.32 + (estado.nivel - 1) * 0.022);
+  window.Jogo.atualizarDificuldade(estado);
 };
 
 window.Jogo.salvarResultado = function (estado) {
@@ -19,5 +18,6 @@ window.Jogo.salvarResultado = function (estado) {
   } catch (erro) {
   }
 
-  return { pontos: estado.pontos, distancia, recorde };
+  const partida = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  return { pontos: estado.pontos, distancia, recorde, nivel: estado.nivel, partida };
 };

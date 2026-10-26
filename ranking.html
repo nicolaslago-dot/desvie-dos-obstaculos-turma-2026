@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ranking | Corrida do Circuito</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/ranking.css">
+</head>
+<body class="pagina-ranking">
+  <main class="cartao-ranking">
+    <header>
+      <p class="marca-ranking">CORRIDA DO CIRCUITO</p>
+      <h1>Ranking · Top 10</h1>
+      <p class="ranking-descricao">Maiores distâncias neste navegador. Nível como desempate.</p>
+    </header>
+    <form id="formulario-ranking" class="formulario-ranking" hidden>
+      <p id="resumo-partida" class="resumo-partida" hidden></p>
+      <label for="nome-jogador">Registre seu nome no ranking</label>
+      <div class="registro-campos">
+        <input id="nome-jogador" name="nome" type="text" maxlength="24" required autocomplete="nickname" placeholder="Seu nome ou apelido">
+        <button id="botao-registrar" class="botao-principal" type="submit">Registrar</button>
+      </div>
+      <p id="mensagem-registro" class="mensagem-registro" role="status" aria-live="polite"></p>
+    </form>
+    <section class="ranking" aria-label="Classificação dos jogadores">
+      <div class="ranking-rolagem">
+        <table aria-label="Os 10 melhores resultados">
+          <thead><tr><th scope="col">Pos.</th><th scope="col">Nome</th><th scope="col">Distância</th><th scope="col">Nível</th></tr></thead>
+          <tbody id="ranking-corpo"></tbody>
+        </table>
+      </div>
+      <p id="ranking-vazio" class="ranking-mensagem">Seja o primeiro! Jogue e registre seu nome ao terminar.</p>
+      <p id="ranking-aviso" class="ranking-mensagem" role="status"></p>
+    </section>
+    <nav class="acoes-ranking" aria-label="Navegação">
+      <a class="botao-principal" href="jogo.html">Jogar novamente</a>
+      <a class="botao-secundario" href="index.html">Voltar ao menu</a>
+    </nav>
+  </main>
+  <script defer src="js/sistemas/ranking.js"></script>
+  <script defer src="js/ranking-pagina.js"></script>
+</body>
+</html>
