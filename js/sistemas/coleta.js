@@ -24,6 +24,7 @@ window.Jogo.criarPeca = function (estado, pistasOcupadas) {
 };
 
 window.Jogo.atualizarColeta = function (estado, segundos) {
+  let quantidadeColetada = 0;
   estado.proximaPeca -= segundos;
   estado.invulneravel = Math.max(0, estado.invulneravel - segundos);
   estado.tempoAviso = Math.max(0, estado.tempoAviso - segundos);
@@ -33,12 +34,12 @@ window.Jogo.atualizarColeta = function (estado, segundos) {
     peca.coletada = true;
     if (estado.pecasColetadas.includes(peca.parte)) continue;
     estado.pecasColetadas.push(peca.parte);
+    quantidadeColetada++;
     if (estado.pecasColetadas.length === window.Jogo.partesRobo.length) {
-      estado.vidas++;
+      estado.vidas = Math.min(5, estado.vidas + 1);
       estado.pecasColetadas = [];
-      estado.aviso = 'ROBÔ COMPLETO! +1 VIDA';
-      estado.tempoAviso = 3;
     }
   }
   estado.pecas = estado.pecas.filter(peca => !peca.coletada && peca.z <= 1.08);
+  return quantidadeColetada;
 };

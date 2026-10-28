@@ -2,7 +2,8 @@ window.Jogo.arquivosAudio = {
   musica: 'midia/musicas/musica.mp3',
   pulo: 'midia/efeitos/pulo.mp3',
   foguete: 'midia/efeitos/foguete.wav',
-  colisao: 'midia/efeitos/colisao.mp3'
+  colisao: 'midia/efeitos/Colisao_Derrota.ogg',
+  coleta: 'midia/efeitos/colisao_parte.mp3'
 };
 
 window.Jogo.configurarAudio = function (estado) {
@@ -70,6 +71,7 @@ window.Jogo.configurarAudio = function (estado) {
     sincronizar('musica', ativo);
     sincronizar('foguete', ativo && !estado.contagem && estado.tempoPulo > 0 && estado.tempoPulo <= 0.8);
     if (!ativo || estado.contagem > 0) parar('pulo', true);
+    if (!ativo || estado.contagem > 0) parar('coleta', true);
     if (document.hidden || estado.pausado) parar('colisao', true);
   }
 
@@ -110,6 +112,11 @@ window.Jogo.configurarAudio = function (estado) {
       if (!podeTocar() || estado.contagem > 0) return;
       parar('pulo', true);
       tocar('pulo');
+    },
+    coleta() {
+      if (!podeTocar() || estado.contagem > 0) return;
+      parar('coleta', true);
+      tocar('coleta');
     },
     colisao() {
       parar('foguete', true);

@@ -16,8 +16,6 @@ window.Jogo.receberImpacto = function (estado) {
     estado.acabou = true;
   } else {
     estado.invulneravel = 2.5;
-    estado.aviso = 'VIDA EXTRA USADA · CONTINUE CORRENDO!';
-    estado.tempoAviso = 2.5;
   }
   return true;
 };

@@ -195,8 +195,10 @@ function elemento(id) {
 let proximoQuadro;
 let fimAgendado;
 contexto.document = { getElementById: elemento, querySelector: () => ({ hidden: true }), addEventListener: vazio, createElement: tipo => tipo === 'canvas' ? criarMascara() : { classList: { toggle: vazio } } };
+const audiosJogo = [];
 contexto.Audio = class {
-  play() { return Promise.resolve(); }
+  constructor(src) { this.src = src; this.reproducoes = 0; audiosJogo.push(this); }
+  play() { this.reproducoes++; return Promise.resolve(); }
   pause() {}
 };
 let horario = 0;
@@ -245,6 +247,7 @@ for (const parte of jogo.partesRobo) {
   vm.runInContext('estado.pecas = [{ parte: parteAtual, pista: estado.pista, z: 0.96 }]', contexto);
   quadro(horario + 16);
 }
+assert.equal(audiosJogo[4].reproducoes, 6, 'Cada parte coletada toca o efeito de coleta.');
 assert.equal(elemento('vidas').textContent, 2);
 assert.equal(elemento('total-pecas').textContent, '0/6');
 vm.runInContext(
@@ -253,10 +256,12 @@ vm.runInContext(
 );
 quadro(horario + 16);
 assert.equal(elemento('vidas').textContent, 1);
+assert.equal(audiosJogo[3].reproducoes, 1, 'A colisão com obstáculo toca o efeito de colisão.');
 assert.equal(fimAgendado, undefined, 'A vida extra mantém a corrida em andamento.');
 vm.runInContext('estado.invulneravel = 0; estado.obstaculos[0].z = 0.98', contexto);
 quadro(horario + 16);
 assert.equal(typeof fimAgendado, 'function');
+assert.equal(audiosJogo[3].reproducoes, 2, 'A colisão final também toca o efeito de colisão.');
 fimAgendado();
 assert.ok(contexto.window.location.href.startsWith('gameover.html?'));
 
@@ -288,5 +293,6 @@ assert.ok(dadosRanking.get('partida'));
 assert.ok(!ler('index.html').includes('ranking-corpo'));
 assert.ok(!ler('gameover.html').includes('formulario-ranking'));
 assert.ok(!ler('gameover.html').includes('ranking-corpo'));
+assert.ok(!ler('gameover.html').includes('Fim de jogo'), 'A tela de resultado não mostra a mensagem de derrota.');
 
 console.log('Testes do jogo: OK');

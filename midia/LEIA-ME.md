@@ -10,18 +10,19 @@ midia/
   efeitos/
     pulo.mp3
     foguete.wav
-    colisao.mp3
-    colisao-alternativa.ogg
+    colisao_parte.mp3
+    derrota.ogg
+    Colisao_Derrota.ogg
 ```
 
 - `musica.mp3`: música de fundo; repete durante a corrida.
 - `pulo.mp3`: efeito curto ao começar o pulo.
 - `foguete.wav`: efeito do motor; repete enquanto o robô está no ar.
-- `colisao.mp3`: efeito da batida. Use um som de até meio segundo, pois depois o jogo abre a tela de resultado.
+- `Colisao_Derrota.ogg`: efeito ao bater em um obstáculo.
+- `colisao_parte.mp3`: efeito ao coletar uma parte do robô.
 
-Os sons usados na corrida já estão incluídos. `derrota.ogg` e
-`colisao-alternativa.ogg` ficam disponíveis como alternativas, sem tocar junto
-com os efeitos atuais. Use arquivos próprios ou com autorização de uso.
+Os sons usados na corrida já estão incluídos. `derrota.ogg` fica disponível
+como alternativa. Use arquivos próprios ou com autorização de uso.
 
 ## Como trocar os arquivos
 
@@ -32,7 +33,8 @@ window.Jogo.arquivosAudio = {
   musica: 'midia/musicas/musica.mp3',
   pulo: 'midia/efeitos/pulo.mp3',
   foguete: 'midia/efeitos/foguete.wav',
-  colisao: 'midia/efeitos/colisao.mp3'
+  colisao: 'midia/efeitos/Colisao_Derrota.ogg',
+  coleta: 'midia/efeitos/colisao_parte.mp3'
 };
 ```
 

@@ -32,6 +32,12 @@ function ambiente(bloqueado = false) {
     window: { Jogo: {}, addEventListener(nome, fn) { eventos[nome] = fn; } }
   });
   vm.runInContext(codigo, contexto);
+  const arquivosAudio = contexto.window.Jogo.arquivosAudio;
+  assert.equal(arquivosAudio.musica, 'midia/musicas/musica.mp3');
+  assert.equal(arquivosAudio.pulo, 'midia/efeitos/pulo.mp3');
+  assert.equal(arquivosAudio.foguete, 'midia/efeitos/foguete.wav');
+  assert.equal(arquivosAudio.colisao, 'midia/efeitos/Colisao_Derrota.ogg');
+  assert.equal(arquivosAudio.coleta, 'midia/efeitos/colisao_parte.mp3');
   const estado = { pausado: false, acabou: false, contagem: 3, tempoPulo: 0 };
   const sons = contexto.window.Jogo.configurarAudio(estado);
   return {audios, eventos, botao, documento, estado, sons, liberar() { bloqueado = false; }};
@@ -40,8 +46,8 @@ function ambiente(bloqueado = false) {
 async function testar() {
   const a = ambiente();
   const {audios, eventos, botao, documento, estado, sons} = a;
-  const [musica, pulo, foguete, colisao] = audios;
-  assert.equal(audios.length, 4, 'Carrega os sons ao entrar, sem botão de ativação.');
+  const [musica, pulo, foguete, colisao, coleta] = audios;
+  assert.equal(audios.length, 5, 'Carrega os sons ao entrar, sem botão de ativação.');
   assert.equal(musica.reproducoes, 1, 'Tenta música automaticamente já na contagem.');
   assert.equal(botao.textContent, 'Silenciar');
   assert.equal(botao.atributos['aria-pressed'], 'true');
@@ -55,6 +61,8 @@ async function testar() {
   sons.pulo();
   sons.atualizar();
   assert.equal(pulo.reproducoes, 1);
+  sons.coleta();
+  assert.equal(coleta.reproducoes, 1, 'A coleta toca seu próprio efeito.');
   assert.equal(foguete.reproducoes, 0);
   estado.tempoPulo = 0.7;
   sons.atualizar();
@@ -67,8 +75,10 @@ async function testar() {
   estado.pausado = true;
   sons.atualizar();
   sons.pulo();
+  sons.coleta();
   assert.equal(musica.paused, true);
   assert.equal(pulo.reproducoes, 1);
+  assert.equal(coleta.reproducoes, 1, 'A coleta não toca durante a pausa.');
   estado.pausado = false;
   sons.atualizar();
   assert.equal(musica.paused, false);
@@ -86,6 +96,8 @@ async function testar() {
   assert.ok(audios.every(a => a.paused), 'Uma escolha de silenciar permanece durante os comandos.');
   sons.colisao();
   assert.equal(colisao.reproducoes, 0);
+  sons.coleta();
+  assert.equal(coleta.reproducoes, 1, 'A coleta respeita a opção de silenciar.');
   eventos.click();
   sons.colisao();
   assert.equal(musica.paused, false, 'Uma vida extra permite continuar a música.');

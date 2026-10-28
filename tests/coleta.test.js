@@ -15,25 +15,39 @@ assert.equal(estado.vidas, 1);
 assert.equal(jogo.partesRobo.length, 6);
 function coletar(parte) {
   estado.pecas.push({ parte: parte.id, pista: estado.pista, z: 0.97 });
-  jogo.atualizarColeta(estado, 0);
+  return jogo.atualizarColeta(estado, 0);
 }
-coletar(jogo.partesRobo[0]);
-coletar(jogo.partesRobo[0]);
+assert.equal(coletar(jogo.partesRobo[0]), 1);
+assert.equal(coletar(jogo.partesRobo[0]), 0, 'Não emite coleta para uma peça repetida.');
 assert.equal(estado.pecasColetadas.length, 1);
 assert.equal(estado.vidas, 1);
 for (const parte of jogo.partesRobo.slice(1)) coletar(parte);
 assert.equal(estado.vidas, 2);
 assert.equal(estado.pecasColetadas.length, 0);
-assert.match(estado.aviso, /vida/i);
+assert.equal(estado.aviso, '', 'Completar as peças não mostra uma mensagem.');
 for (const parte of jogo.partesRobo) coletar(parte);
 assert.equal(estado.vidas, 3, 'Novos conjuntos também dão uma vida.');
+assert.equal(estado.aviso, '', 'Completar outro conjunto também não mostra mensagem.');
+
+// Conjuntos podem continuar sendo coletados, mas nunca concedem mais que cinco vidas.
+estado.vidas = 4;
+for (const parte of jogo.partesRobo) coletar(parte);
+assert.equal(estado.vidas, 5);
+assert.equal(estado.aviso, '');
+for (const parte of jogo.partesRobo) coletar(parte);
+assert.equal(estado.vidas, 5, 'O total de vidas não ultrapassa cinco.');
+assert.equal(estado.aviso, '', 'Atingir o limite não mostra mensagem.');
+assert.equal(estado.pecasColetadas.length, 0, 'O limite não bloqueia novas coletas de peças.');
 
 // Uma vida extra absorve uma batida e protege de impactos consecutivos.
+estado.vidas = 3;
 estado.obstaculos = [{ pista: 0, z: 0.98 }];
 assert.equal(jogo.receberImpacto(estado), true);
 assert.equal(estado.vidas, 2);
 assert.equal(estado.acabou, false);
 assert.ok(estado.invulneravel > 0);
+assert.equal(estado.aviso, '', 'Usar uma vida extra não mostra aviso.');
+assert.equal(estado.tempoAviso, 0);
 assert.equal(jogo.bateu(estado), false);
 assert.equal(jogo.receberImpacto(estado), false);
 jogo.atualizarColeta(estado, 3);
@@ -100,6 +114,6 @@ for (const inicio of [0, 10000]) {
     jogo.atualizarObstaculos(completa, 0.05);
     assert.equal(jogo.bateu(completa), false, 'É possível desviar sem depender do salto.');
   }
-  assert.ok(completa.vidas >= 3, 'Peças naturais completam conjuntos e concedem novas vidas.');
+  assert.ok(completa.vidas >= 3 && completa.vidas <= 5, 'As peças concedem vidas sem ultrapassar o limite.');
 }
 console.log('Testes de coleta, vidas, pistas livres e progressão: OK');

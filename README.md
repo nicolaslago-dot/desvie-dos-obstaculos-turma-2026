@@ -35,9 +35,9 @@ Abra `index.html` ou sirva a pasta com `python -m http.server 8000` e acesse
 `http://localhost:8000`. A câmera precisa de localhost ou HTTPS.
 
 A corrida mantém três pistas, salto, teclado e controle pelo corpo. Cada conjunto
-de seis peças diferentes concede uma vida extra; o painel mostra as partes já
-coletadas. Após usar uma vida, o robô fica protegido por 2,5 segundos. Um novo
-conjunto pode ser coletado para ganhar outra vida.
+de seis peças diferentes concede uma vida extra, até o limite de cinco vidas; o
+painel mostra as partes já coletadas. Após usar uma vida, o robô fica protegido
+por 2,5 segundos. Um novo conjunto pode ser coletado para ganhar outra vida.
 
 A dificuldade aumenta suavemente com a distância: velocidade de 0,32 até 0,56,
 intervalo entre grupos de 1,75 até 1,15 segundos e, mais adiante, grupos de dois

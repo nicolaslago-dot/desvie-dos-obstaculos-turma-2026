@@ -71,7 +71,8 @@ function atualizarQuadro(agora) {
   } else if (!estado.pausado && !estado.acabou) {
     window.Jogo.atualizarPontos(estado, segundos);
     window.Jogo.animarMovimento(estado, segundos);
-    window.Jogo.atualizarColeta(estado, segundos);
+    const pecasColetadas = window.Jogo.atualizarColeta(estado, segundos);
+    if (pecasColetadas > 0) window.Jogo.sons.coleta();
     window.Jogo.atualizarObstaculos(estado, segundos);
 
     if (window.Jogo.bateu(estado) && window.Jogo.receberImpacto(estado)) {
