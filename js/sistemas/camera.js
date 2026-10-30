@@ -30,9 +30,13 @@ window.Jogo.identificarGesto = function (pontos, proporcao = 4 / 3) {
   const [bracoE, bracoD] = bracos;
   const largura = bracoD.ombro.x - bracoE.ombro.x;
   if (largura < 0.06) return null;
-  const topo = Math.min(bracoE.ombro.y, bracoD.ombro.y);
-  // Pular continua exigindo as duas mãos; um cotovelo sozinho não inicia um salto.
-  if (bracos.every(b => b.mao && b.mao.y < topo - largura * 0.6)) return 'pular';
+  // Cada mão precisa estar acima do próprio ombro. Se sair pelo topo do vídeo,
+  // o cotovelo alto e próximo do ombro ainda permite reconhecer o braço em pé.
+  const levantado = braco => braco.mao
+    ? braco.mao.y < braco.ombro.y - largura * 0.35
+    : braco.cotovelo && braco.cotovelo.y < braco.ombro.y - largura * 0.35 &&
+      Math.abs(braco.cotovelo.x - braco.ombro.x) < largura * 0.75;
+  if (bracos.every(levantado)) return 'pular';
 
   function lateral(braco, direcao) {
     const ponto = braco.mao || braco.cotovelo;
@@ -62,11 +66,17 @@ window.Jogo.criarLeitorGestos = function () {
   let armado = true;
   let ultimoValido = null;
   let ultimoComando = null;
-  return function (gesto, agora, habilitado) {
+  let puloArmado = true;
+  let inicioPulo = null;
+  let ultimoPulo = null;
+  let semPuloDesde = null;
+  return function (gesto, agora, habilitado, podePular = true) {
     if (!habilitado) {
       anterior = null;
       armado = true;
       ultimoValido = ultimoComando = null;
+      puloArmado = true;
+      inicioPulo = ultimoPulo = semPuloDesde = null;
       return null;
     }
     // Uma falha curta da câmera não apaga a preparação do gesto.
@@ -74,9 +84,11 @@ window.Jogo.criarLeitorGestos = function () {
       anterior = null;
       armado = true;
       ultimoComando = null;
+      inicioPulo = ultimoPulo = semPuloDesde = null;
     }
     if (gesto === null) {
       anterior = null;
+      semPuloDesde = null;
       return null;
     }
     ultimoValido = agora;
@@ -84,12 +96,32 @@ window.Jogo.criarLeitorGestos = function () {
       anterior = gesto;
       desde = agora;
     }
+    if (gesto === 'pular') {
+      semPuloDesde = null;
+      // Confirma rapidamente em mais de um quadro e tolera uma falha curta.
+      if (ultimoPulo === null || agora - ultimoPulo > 240) inicioPulo = agora;
+      ultimoPulo = agora;
+      // Não consome o gesto enquanto o robô ainda está no salto anterior.
+      if (puloArmado && podePular && agora - inicioPulo >= 80) {
+        puloArmado = false;
+        armado = false;
+        ultimoComando = gesto;
+        return gesto;
+      }
+    } else {
+      // Basta baixar os braços por um instante, sem exigir a pose neutra completa.
+      if (semPuloDesde === null) semPuloDesde = agora;
+      if (agora - semPuloDesde >= 140) {
+        puloArmado = true;
+        inicioPulo = ultimoPulo = null;
+      }
+    }
     if (gesto === 'neutro' && agora - desde >= 140) {
       armado = true;
       ultimoComando = null;
     }
     const novoComando = armado || (ultimoComando !== null && gesto !== ultimoComando);
-    if (novoComando && ['esquerda', 'direita', 'pular'].includes(gesto) && agora - desde >= 140) {
+    if (novoComando && ['esquerda', 'direita'].includes(gesto) && agora - desde >= 140) {
       armado = false;
       ultimoComando = gesto;
       return gesto;
@@ -350,7 +382,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
             const gesto = window.Jogo.identificarGesto(pontos, video.videoWidth / video.videoHeight);
             if (corpo.presente) ultimaPresenca = agora;
             const habilitado = !estado.pausado && !estado.acabou && !estado.contagem;
-            const comando = lerGesto(gesto, agora, habilitado);
+            const comando = lerGesto(gesto, agora, habilitado, estado.tempoPulo === 0);
             if (habilitado && corpo.presente && corpo.pronto && corpo.pista !== ultimaPistaCorpo) {
               window.Jogo.mover(estado, corpo.pista - estado.pista);
               ultimaPistaCorpo = corpo.pista;

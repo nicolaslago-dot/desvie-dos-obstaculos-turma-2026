@@ -134,6 +134,30 @@ async function testar() {
   for (const tipo of ['neutro', 'esquerda', 'direita', 'pular']) {
     assert.equal(a.jogo.identificarGesto(pose(tipo)), tipo);
   }
+  const maosAcima = pose('pular');
+  maosAcima[15].y = maosAcima[16].y = 0.3;
+  assert.equal(a.jogo.identificarGesto(maosAcima), 'pular', 'As duas mãos acima dos ombros já permitem pular.');
+  const ombrosDesnivelados = pose('pular');
+  ombrosDesnivelados[11].y = 0.32;
+  ombrosDesnivelados[12].y = 0.48;
+  ombrosDesnivelados[15].y = 0.21;
+  ombrosDesnivelados[16].y = 0.37;
+  assert.equal(a.jogo.identificarGesto(ombrosDesnivelados), 'pular', 'Cada braço usa a altura do próprio ombro.');
+  const maosCortadas = pose('pular');
+  maosCortadas[15].y = maosCortadas[16].y = -0.05;
+  maosCortadas[13].y = maosCortadas[14].y = 0.18;
+  assert.equal(a.jogo.identificarGesto(maosCortadas), 'pular', 'Cotovelos visíveis para cima compensam mãos fora do vídeo.');
+  const umParaCima = pose('pular');
+  umParaCima[16].y = 0.8;
+  assert.notEqual(a.jogo.identificarGesto(umParaCima), 'pular', 'Um braço só não inicia o pulo.');
+  const cotovelosLaterais = pose('ambos');
+  cotovelosLaterais[15].visibility = cotovelosLaterais[16].visibility = 0;
+  Object.assign(cotovelosLaterais[13], { x: 0.82, y: 0.29 });
+  Object.assign(cotovelosLaterais[14], { x: 0.18, y: 0.29 });
+  assert.notEqual(a.jogo.identificarGesto(cotovelosLaterais), 'pular', 'Cotovelos abertos para os lados não são braços em pé.');
+  const maosBaixas = pose();
+  maosBaixas[13].y = maosBaixas[14].y = 0.18;
+  assert.notEqual(a.jogo.identificarGesto(maosBaixas), 'pular', 'Mãos visíveis abaixadas têm prioridade sobre os cotovelos.');
   // Uma mão fora do enquadramento não pode cancelar o outro braço.
   const umBraco = pose('esquerda');
   umBraco[16].visibility = 0.1;
@@ -247,6 +271,35 @@ async function testar() {
   alternar(null, 1400, true);
   alternar('esquerda', 1450, true);
   assert.equal(alternar('esquerda', 1600, true), 'esquerda', 'Quando as mãos reaparecem, um gesto estável volta a funcionar.');
+
+  const saltar = a.jogo.criarLeitorGestos();
+  assert.equal(saltar('pular', 0, true), null, 'Uma leitura isolada não pula.');
+  saltar(null, 66, true);
+  assert.equal(saltar('pular', 132, true), 'pular', 'Uma falha breve não apaga a confirmação do pulo.');
+  for (const agora of [198, 264]) assert.equal(saltar('pular', agora, true), null, 'Manter os braços levantados não repete o pulo.');
+  saltar('aguardar', 330, true);
+  assert.equal(saltar('pular', 396, true), null, 'Uma oscilação isolada não prepara outro pulo.');
+  for (const agora of [462, 528, 660]) saltar('aguardar', agora, true);
+  assert.equal(saltar('pular', 726, true), null);
+  assert.equal(saltar('pular', 858, true), 'pular', 'Baixar até a altura do peito e levantar permite pular novamente.');
+  saltar(null, 1200, true);
+  saltar('pular', 1266, true);
+  assert.equal(saltar('pular', 1398, true), null, 'Perder a pessoa de vista não equivale a baixar os braços.');
+  saltar('pular', 1500, false);
+  assert.equal(saltar('pular', 1600, true), null);
+  assert.equal(saltar('pular', 1732, true), 'pular', 'Ao continuar, um gesto novo volta a funcionar.');
+
+  const noAr = a.jogo.criarLeitorGestos();
+  assert.equal(noAr('pular', 0, true, false), null);
+  assert.equal(noAr('pular', 132, true, false), null, 'O comando espera o robô terminar o salto atual.');
+  assert.equal(noAr('pular', 198, true, true), 'pular', 'Braços ainda levantados acionam o salto ao tocar o chão.');
+  assert.equal(noAr('pular', 330, true, true), null);
+
+  const leituraAntiga = a.jogo.criarLeitorGestos();
+  leituraAntiga('pular', 0, true);
+  leituraAntiga(null, 250, true);
+  assert.equal(leituraAntiga('pular', 300, true), null, 'Uma leitura antiga não confirma o salto.');
+  assert.equal(leituraAntiga('pular', 432, true), 'pular');
 
   // O pulo sobe, evita colisão no alto, desce e respeita pausa e fim de jogo.
   const corrida = a.jogo.novoEstado();
@@ -389,6 +442,33 @@ async function testar() {
   h.quadro(3500);
   assert.equal(h.estado.pista, 0, 'O botão redefine a posição atual como centro.');
   h.jogo.desligarCamera();
+
+  // O salto atravessa o sensor com mãos cortadas, falhas curtas e repetição após abaixar.
+  const i = ambiente();
+  await i.clicar();
+  i.estado.pausado = false;
+  i.detector.detectForVideo = () => ({ landmarks: [maosCortadas] });
+  i.quadro(0);
+  i.detector.detectForVideo = () => ({ landmarks: [] });
+  i.quadro(66);
+  i.detector.detectForVideo = () => ({ landmarks: [maosCortadas] });
+  i.quadro(132);
+  assert.equal(i.estado.tempoPulo, 0.9);
+  i.jogo.animarMovimento(i.estado, 0.9);
+  i.quadro(198);
+  assert.equal(i.estado.tempoPulo, 0, 'Segurar a pose após aterrissar não repete o salto.');
+  const maosNoPeito = pose();
+  maosNoPeito[15].y = maosNoPeito[16].y = 0.45;
+  i.detector.detectForVideo = () => ({ landmarks: [maosNoPeito] });
+  for (const agora of [264, 330, 462]) i.quadro(agora);
+  // Levantar antes de aterrissar não pode consumir e perder o próximo comando.
+  i.jogo.pular(i.estado);
+  i.detector.detectForVideo = () => ({ landmarks: [maosAcima] });
+  i.quadro(528); i.quadro(660);
+  i.jogo.animarMovimento(i.estado, 0.9);
+  i.quadro(726);
+  assert.equal(i.estado.tempoPulo, 0.9, 'A câmera confirma o próximo salto quando o robô aterrissa.');
+  i.jogo.desligarCamera();
   console.log('Testes de câmera, gestos, pulo e recuperação: OK');
 }
 testar().catch(erro => { console.error(erro); process.exitCode = 1; });
