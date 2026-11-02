@@ -130,7 +130,14 @@ async function testar() {
   assert.equal(a.estado.pista, -1);
   tecla('ArrowRight');
   assert.equal(a.estado.pista, 0);
+  tecla('a');
+  assert.equal(a.estado.pista, -1);
+  tecla('D');
+  assert.equal(a.estado.pista, 0);
   tecla('ArrowUp');
+  assert.equal(a.estado.tempoPulo, 0.9);
+  a.jogo.animarMovimento(a.estado, 0.9);
+  tecla('w');
   assert.equal(a.estado.tempoPulo, 0.9);
   a.jogo.animarMovimento(a.estado, 0.9);
   tecla(' ');
