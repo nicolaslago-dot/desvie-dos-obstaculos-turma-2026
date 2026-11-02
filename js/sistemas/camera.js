@@ -193,18 +193,77 @@ window.Jogo.criarLeitorCorpo = function () {
 };
 
 window.Jogo.criarDetectorPose = async function () {
-  const base = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21';
-  const { FilesetResolver, PoseLandmarker } = await import(base + '/vision_bundle.mjs');
-  const arquivos = await FilesetResolver.forVisionTasks(base + '/wasm');
-  return PoseLandmarker.createFromOptions(arquivos, {
-    baseOptions: {
-      modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
-    },
-    runningMode: 'VIDEO',
-    numPoses: 1,
-    minPoseDetectionConfidence: 0.5,
-    minPosePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5
+  if (typeof Worker === 'undefined' || typeof createImageBitmap !== 'function' ||
+    typeof OffscreenCanvas === 'undefined') {
+    const erro = new Error('Processamento da câmera em segundo plano indisponível.');
+    erro.name = 'NotSupportedError';
+    throw erro;
+  }
+  return new Promise((resolve, reject) => {
+    const processador = new Worker('js/sistemas/pose-worker.js');
+    let fechado = false;
+    let pronto = false;
+    let pendente = null;
+    const limiteInicializacao = setTimeout(() => falhar(new Error('Tempo de carregamento excedido.')), 30000);
+
+    function falhar(erro) {
+      if (fechado) return;
+      fechado = true;
+      clearTimeout(limiteInicializacao);
+      processador.terminate();
+      if (!pronto) reject(erro);
+      if (pendente) {
+        clearTimeout(pendente.limite);
+        pendente.reject(erro);
+        pendente = null;
+      }
+    }
+
+    const leitor = {
+      detectForVideo(video, agora) {
+        if (fechado) return Promise.reject(new Error('Detector encerrado.'));
+        // Não guarda uma fila de imagens antigas quando a análise demora.
+        if (pendente) return pendente.promessa;
+        let concluir;
+        let rejeitar;
+        const promessa = new Promise((resolve, reject) => { concluir = resolve; rejeitar = reject; });
+        const pedido = pendente = {
+          promessa, resolve: concluir, reject: rejeitar,
+          limite: setTimeout(() => falhar(new Error('Tempo de leitura excedido.')), 5000)
+        };
+        const escala = Math.min(1, 480 / video.videoWidth, 360 / video.videoHeight);
+        Promise.resolve().then(() => createImageBitmap(video, {
+          resizeWidth: Math.max(1, Math.round(video.videoWidth * escala)),
+          resizeHeight: Math.max(1, Math.round(video.videoHeight * escala)),
+          resizeQuality: 'low'
+        })).then(imagem => {
+          if (fechado || pendente !== pedido) { imagem.close(); return; }
+          try {
+            processador.postMessage({ tipo: 'detectar', imagem, agora }, [imagem]);
+          } catch (erro) {
+            imagem.close();
+            falhar(erro);
+          }
+        }).catch(erro => falhar(erro));
+        return promessa;
+      },
+      close() { falhar(new Error('Detector encerrado.')); }
+    };
+    processador.onmessage = function ({ data }) {
+      if (fechado) return;
+      if (data.tipo === 'pronto') {
+        pronto = true;
+        clearTimeout(limiteInicializacao);
+        resolve(leitor);
+      } else if (data.tipo === 'resultado' && pendente) {
+        const pedido = pendente;
+        pendente = null;
+        clearTimeout(pedido.limite);
+        pedido.resolve({ landmarks: data.landmarks });
+      } else if (data.tipo === 'erro') falhar(new Error(data.mensagem));
+    };
+    processador.onerror = () => falhar(new Error('Falha no processamento da câmera.'));
+    try { processador.postMessage({ tipo: 'iniciar' }); } catch (erro) { falhar(erro); }
   });
 };
 
@@ -274,6 +333,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
   let detector = null;
   let quadro = null;
   let sessao = 0;
+  let revisao = 0;
   let ligado = false;
 
   function avisar(texto) {
@@ -308,6 +368,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
     pausar(true);
     leitorCorpo.centralizar();
     ultimaPistaCorpo = null;
+    revisao++;
     avisar('Fique parado por um instante para centralizar o corpo.');
   });
 
@@ -331,7 +392,7 @@ window.Jogo.configurarCamera = function (estado, pausar) {
     avisar('Autorize a câmera. A corrida está pausada.');
     try {
       const novoFluxo = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } },
         audio: false
       });
       if (atual !== sessao) {
@@ -364,54 +425,78 @@ window.Jogo.configurarCamera = function (estado, pausar) {
       let ultimaLeitura = -Infinity;
       let ultimoVideo = -1;
       let ultimaPresenca = performance.now();
+      let processando = false;
+      let duracaoMedia = 0;
+
+      function aplicarResultado(resultado, agora, versao) {
+        if (atual !== sessao || versao !== revisao || document.hidden) return;
+        if (esqueleto.width !== video.videoWidth || esqueleto.height !== video.videoHeight) {
+          esqueleto.width = video.videoWidth;
+          esqueleto.height = video.videoHeight;
+        }
+        const pontos = resultado.landmarks[0];
+        window.Jogo.desenharEsqueleto(pincel, pontos, esqueleto.width, esqueleto.height);
+        const corpo = leitorCorpo.ler(pontos, agora);
+        const gesto = window.Jogo.identificarGesto(pontos, video.videoWidth / video.videoHeight);
+        if (corpo.presente) ultimaPresenca = performance.now();
+        const habilitado = !estado.pausado && !estado.acabou && !estado.contagem;
+        const comando = lerGesto(gesto, agora, habilitado, estado.tempoPulo === 0);
+        if (habilitado && corpo.presente && corpo.pronto && corpo.pista !== ultimaPistaCorpo) {
+          window.Jogo.mover(estado, corpo.pista - estado.pista);
+          ultimaPistaCorpo = corpo.pista;
+        }
+        if (comando === 'pular') window.Jogo.pular(estado);
+        if ((!corpo.pronto || corpo.pista === 0) && corpo.presente) {
+          if (comando === 'esquerda') window.Jogo.mover(estado, -1);
+          if (comando === 'direita') window.Jogo.mover(estado, 1);
+        }
+        if (estado.acabou) avisar('Câmera ativa. Clique em JOGAR NOVAMENTE para outra corrida.');
+        else if (!corpo.presente) avisar('Mostre os ombros e o tronco na câmera.');
+        else if (!corpo.pronto) avisar('Fique parado por um instante para centralizar o corpo.');
+        else if (estado.pausado) avisar('Câmera pronta! Clique em CONTINUAR. Incline o tronco para mudar de pista.');
+        else if (estado.contagem > 0) avisar('Prepare-se! Abaixe os braços durante a contagem.');
+        else if (corpo.pista === -1) avisar('Corpo: ESQUERDA. Volte ao centro para a pista do meio.');
+        else if (corpo.pista === 1) avisar('Corpo: DIREITA. Volte ao centro para a pista do meio.');
+        else if (gesto === 'esquerda') avisar('Gesto: ESQUERDA. Abaixe o braço para repetir.');
+        else if (gesto === 'direita') avisar('Gesto: DIREITA. Abaixe o braço para repetir.');
+        else if (gesto === 'pular') avisar('Gesto: PULAR. Abaixe os braços para repetir.');
+        else avisar('Centro. Incline o corpo, estenda um braço ou levante as duas mãos para pular.');
+      }
+
+      function falhaLeitura() {
+        if (atual !== sessao) return;
+        pausar(true);
+        desligar('Não foi possível ler os movimentos. Ative a câmera para tentar novamente.', true);
+      }
+
       function observar(agora) {
         if (atual !== sessao) return;
-        if (estado.acabou) { desligar(); return; }
         try {
-          if (!document.hidden && video.readyState >= 2 && video.currentTime !== ultimoVideo && agora - ultimaLeitura >= 66) {
+          const intervalo = estado.acabou ? 330 : estado.pausado ? 100 : Math.max(66, Math.min(180, duracaoMedia * 1.3));
+          if (!processando && !document.hidden && video.readyState >= 2 &&
+            video.currentTime !== ultimoVideo && agora - ultimaLeitura >= intervalo) {
             ultimaLeitura = agora;
             ultimoVideo = video.currentTime;
+            const versao = revisao;
+            const inicio = performance.now();
+            processando = true;
             const resultado = detector.detectForVideo(video, agora);
-            if (esqueleto.width !== video.videoWidth || esqueleto.height !== video.videoHeight) {
-              esqueleto.width = video.videoWidth;
-              esqueleto.height = video.videoHeight;
-            }
-            const pontos = resultado.landmarks[0];
-            window.Jogo.desenharEsqueleto(pincel, pontos, esqueleto.width, esqueleto.height);
-            const corpo = leitorCorpo.ler(pontos, agora);
-            const gesto = window.Jogo.identificarGesto(pontos, video.videoWidth / video.videoHeight);
-            if (corpo.presente) ultimaPresenca = agora;
-            const habilitado = !estado.pausado && !estado.acabou && !estado.contagem;
-            const comando = lerGesto(gesto, agora, habilitado, estado.tempoPulo === 0);
-            if (habilitado && corpo.presente && corpo.pronto && corpo.pista !== ultimaPistaCorpo) {
-              window.Jogo.mover(estado, corpo.pista - estado.pista);
-              ultimaPistaCorpo = corpo.pista;
-            }
-            if (comando === 'pular') window.Jogo.pular(estado);
-            if ((!corpo.pronto || corpo.pista === 0) && corpo.presente) {
-              if (comando === 'esquerda') window.Jogo.mover(estado, -1);
-              if (comando === 'direita') window.Jogo.mover(estado, 1);
-            }
-            if (!corpo.presente) avisar('Mostre os ombros e o tronco na câmera.');
-            else if (!corpo.pronto) avisar('Fique parado por um instante para centralizar o corpo.');
-            else if (estado.pausado) avisar('Câmera pronta! Clique em CONTINUAR. Incline o tronco para mudar de pista.');
-            else if (estado.contagem > 0) avisar('Prepare-se! Abaixe os braços durante a contagem.');
-            else if (corpo.pista === -1) avisar('Corpo: ESQUERDA. Volte ao centro para a pista do meio.');
-            else if (corpo.pista === 1) avisar('Corpo: DIREITA. Volte ao centro para a pista do meio.');
-            else if (gesto === 'esquerda') avisar('Gesto: ESQUERDA. Abaixe o braço para repetir.');
-            else if (gesto === 'direita') avisar('Gesto: DIREITA. Abaixe o braço para repetir.');
-            else if (gesto === 'pular') avisar('Gesto: PULAR. Abaixe os braços para repetir.');
-            else avisar('Centro. Incline o corpo, estenda um braço ou levante as duas mãos para pular.');
+            const concluir = leitura => {
+              processando = false;
+              duracaoMedia = duracaoMedia * 0.8 + (performance.now() - inicio) * 0.2;
+              aplicarResultado(leitura, agora, versao);
+            };
+            if (resultado && typeof resultado.then === 'function') resultado.then(concluir).catch(falhaLeitura);
+            else concluir(resultado);
           }
-          if (agora - ultimaPresenca > 1000) {
+          if (!estado.acabou && !estado.pausado && agora - ultimaPresenca > 1000) {
             pausar(true);
             lerGesto(null, agora, false);
             avisar('Sem leitura do corpo. Mostre os ombros e o tronco e clique em CONTINUAR.');
           }
           quadro = requestAnimationFrame(observar);
         } catch (erro) {
-          pausar(true);
-          desligar('Não foi possível ler os movimentos. Ative a câmera para tentar novamente.', true);
+          falhaLeitura();
         }
       }
       quadro = requestAnimationFrame(observar);
@@ -420,10 +505,18 @@ window.Jogo.configurarCamera = function (estado, pausar) {
       const mensagens = {
         NotAllowedError: 'Câmera bloqueada. Permita o acesso nas configurações do navegador e tente novamente.',
         NotFoundError: 'Nenhuma câmera encontrada. Conecte uma câmera e tente novamente.',
-        NotReadableError: 'A câmera está ocupada. Feche outros aplicativos que a estejam usando.'
+        NotReadableError: 'A câmera está ocupada. Feche outros aplicativos que a estejam usando.',
+        NotSupportedError: 'Use um navegador atualizado para processar a câmera sem travar o jogo.'
       };
       desligar(mensagens[erro.name] || 'Não foi possível iniciar a câmera. Confira a internet e tente novamente.', true);
     }
   });
   window.addEventListener('pagehide', () => desligar());
+  return {
+    prepararPartida() {
+      // A calibração e a captura continuam; só sincroniza a pista da nova corrida.
+      ultimaPistaCorpo = null;
+      revisao++;
+    }
+  };
 };

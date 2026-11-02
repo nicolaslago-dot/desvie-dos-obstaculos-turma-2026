@@ -1,4 +1,4 @@
-# Desvie dos Obstáculos Projeto da Turma 2026
+# Cyber Runner
 
 ## Sobre o projeto
 
@@ -33,6 +33,13 @@ Para isso, teremos que pensar em diversos aspectos:
 
 Abra `index.html` ou sirva a pasta com `python -m http.server 8000` e acesse
 `http://localhost:8000`. A câmera precisa de localhost ou HTTPS.
+
+O resultado aparece na própria tela do jogo. **Jogar novamente** reinicia a
+corrida com a mesma câmera e a mesma calibração, sem pedir outra ativação.
+A câmera continua ligada entre partidas até você desligá-la ou sair da página.
+O detector usa o modelo leve e processa os movimentos em segundo plano, sem
+bloquear a animação. Só uma imagem é analisada por vez; a frequência se adapta
+ao tempo de processamento e diminui na tela de resultado.
 
 A corrida mantém três pistas, salto, teclado e controle pelo corpo. Cada conjunto
 de seis peças diferentes concede uma vida extra, até o limite de cinco vidas; o
@@ -69,8 +76,8 @@ tests/               Testes sem dependências externas
 ```
 
 Verificações: `node tests/game.test.js`, `node tests/coleta.test.js`,
-`node tests/audio.test.js`, `node tests/camera.test.js`, `node tests/ranking.test.js`
-e `node tests/colisoes.test.js`.
+`node tests/audio.test.js`, `node tests/camera.test.js`, `node tests/ranking.test.js`,
+`node tests/pose-worker.test.js` e `node tests/colisoes.test.js`.
 
 ## Tecnologias
 

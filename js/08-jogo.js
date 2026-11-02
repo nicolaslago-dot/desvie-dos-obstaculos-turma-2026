@@ -11,6 +11,8 @@ const vidasNaTela = document.getElementById('vidas');
 const totalPecas = document.getElementById('total-pecas');
 const avisoColeta = document.getElementById('aviso-coleta');
 const painelPecas = document.getElementById('pecas-robo');
+const painelResultado = document.getElementById('painel-resultado');
+const botaoReiniciar = document.getElementById('botao-reiniciar');
 const iconesPecas = window.Jogo.partesRobo.map(parte => {
   const icone = document.createElement('img');
   icone.src = parte.imagem;
@@ -43,18 +45,38 @@ function iniciarContagem() {
 }
 
 const pausar = window.Jogo.configurarControles(estado, mostrarPausa);
-window.Jogo.configurarCamera(estado, pausar);
+const camera = window.Jogo.configurarCamera(estado, pausar);
 iniciarContagem();
+
+botaoReiniciar.addEventListener('click', () => {
+  if (!estado.acabou) return;
+  // Mantém as referências usadas pela câmera, pelo áudio e pelo teclado.
+  Object.assign(estado, window.Jogo.novoEstado());
+  camera.prepararPartida();
+  painelResultado.hidden = true;
+  painelPausa.hidden = true;
+  document.getElementById('efeito-colisao').classList.remove('active');
+  pontosNaTela.textContent = '000000';
+  distanciaNaTela.textContent = '0';
+  nivelNaTela.textContent = '01';
+  botaoPausa.textContent = 'Pausar';
+  iniciarContagem();
+  botaoPausa.focus();
+});
 
 function terminarJogo() {
   estado.acabou = true;
-  window.Jogo.desligarCamera();
   const resultado = window.Jogo.salvarResultado(estado);
   document.getElementById('efeito-colisao').classList.add('active');
 
-  const dados = new URLSearchParams(resultado);
+  document.getElementById('pontuacao-final').textContent = String(resultado.pontos).padStart(6, '0');
+  document.getElementById('distancia-final').textContent = resultado.distancia;
+  document.getElementById('nivel-final').textContent = resultado.nivel;
+  document.getElementById('maior-distancia').textContent = resultado.recorde;
+  document.getElementById('link-ranking').href = 'ranking.html?' + new URLSearchParams(resultado).toString();
   setTimeout(() => {
-    window.location.href = 'gameover.html?' + dados.toString();
+    painelResultado.hidden = false;
+    botaoReiniciar.focus();
   }, 500);
 }
 

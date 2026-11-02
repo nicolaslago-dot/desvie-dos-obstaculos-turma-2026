@@ -4,11 +4,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ler = arquivo => fs.readFileSync(path.join(__dirname, '..', arquivo), 'utf8');
 
-function ambiente() {
+function ambiente(comPartida = false) {
   const elementos = new Map();
   const eventos = new Map();
   const quadros = new Map();
   const desenho = [];
+  const esperas = [];
   const pincel = {
     clearRect: (...valores) => desenho.push(['limpar', ...valores]),
     beginPath() {}, stroke() {}, fill() {},
@@ -27,28 +28,41 @@ function ambiente() {
   function elemento(nome) {
     if (!elementos.has(nome)) elementos.set(nome, {
       textContent: '', atributos: {}, eventos: {},
+      classList: { add() {}, remove() {}, toggle() {} }, appendChild() {}, focus() {},
       setAttribute(chave, valor) { this.atributos[chave] = valor; },
       addEventListener(tipo, fn) { this.eventos[tipo] = fn; }
     });
     return elementos.get(nome);
   }
   const contexto = vm.createContext({
-    window: { isSecureContext: true, addEventListener: (tipo, fn) => eventos.set(tipo, fn) },
+    window: { isSecureContext: true, location: { href: '' }, addEventListener: (tipo, fn) => eventos.set(tipo, fn) },
     document: {
       hidden: false, getElementById: elemento, querySelector: seletor => seletor === '.camera' ? elemento('painel-camera') : null,
+      createElement: () => ({ classList: { toggle() {} } }),
       addEventListener: (tipo, fn) => eventos.set(tipo, fn)
     },
     navigator: { mediaDevices: {} },
     performance: { now: () => tempo },
+    URLSearchParams,
+    setTimeout: fn => esperas.push(fn),
     requestAnimationFrame: fn => { quadros.set(++id, fn); return id; },
     cancelAnimationFrame: chave => quadros.delete(chave)
   });
-  for (const nome of ['01-estado', '02-movimento', '04-colisoes', '07-controles', 'sistemas/camera']) {
+  for (const nome of ['01-estado', '02-movimento', '03-obstaculos', '04-colisoes', '05-pontos',
+    '07-controles', 'sistemas/camera', 'sistemas/dificuldade', 'sistemas/coleta']) {
     vm.runInContext(ler('js/' + nome + '.js'), contexto);
   }
   const jogo = contexto.window.Jogo;
-  const estado = jogo.novoEstado();
-  jogo.configurarCamera(estado, valor => { estado.pausado = valor; });
+  let estado;
+  if (comPartida) {
+    jogo.criarDesenho = () => () => {};
+    jogo.configurarAudio = () => ({ atualizar() {}, pulo() {}, coleta() {}, colisao() {} });
+    vm.runInContext(ler('js/08-jogo.js'), contexto);
+    estado = vm.runInContext('estado', contexto);
+  } else {
+    estado = jogo.novoEstado();
+    jogo.configurarCamera(estado, valor => { estado.pausado = valor; });
+  }
   const trilha = { paradas: 0, stop() { this.paradas++; }, addEventListener(tipo, fn) { this[tipo] = fn; } };
   const fluxo = { getTracks: () => [trilha], getVideoTracks: () => [trilha] };
   const detector = { fechamentos: 0, close() { this.fechamentos++; }, detectForVideo: () => ({ landmarks: [pose()] }) };
@@ -57,11 +71,11 @@ function ambiente() {
   function quadro(agora) {
     tempo = agora;
     video.currentTime += 0.1;
-    const [chave, fn] = quadros.entries().next().value;
-    quadros.delete(chave);
-    fn(agora);
+    for (const [chave, fn] of Array.from(quadros)) {
+      if (quadros.delete(chave)) fn(agora);
+    }
   }
-  return { contexto, jogo, estado, elemento, video, trilha, fluxo, detector, quadros, eventos, quadro, desenho, pincel,
+  return { contexto, jogo, estado, elemento, video, trilha, fluxo, detector, quadros, eventos, quadro, desenho, pincel, esperas,
     clicar: () => elemento('botao-camera').eventos.click() };
 }
 
@@ -469,6 +483,107 @@ async function testar() {
   i.quadro(726);
   assert.equal(i.estado.tempoPulo, 0.9, 'A câmera confirma o próximo salto quando o robô aterrissa.');
   i.jogo.desligarCamera();
+
+  // Morrer e reiniciar mantém a captura, o detector e a calibração originais.
+  const j = ambiente(true);
+  let aberturas = 0;
+  let carregamentos = 0;
+  j.contexto.navigator.mediaDevices.getUserMedia = async () => { aberturas++; return j.fluxo; };
+  j.jogo.criarDetectorPose = async () => { carregamentos++; return j.detector; };
+  await j.clicar();
+  for (const agora of [0, 200, 400, 600]) j.quadro(agora);
+  j.elemento('botao-continuar').eventos.click();
+  j.quadro(3600);
+  const fim = () => {
+    j.estado.contagem = 0;
+    j.estado.tempoPulo = j.estado.alturaPulo = 0;
+    j.estado.obstaculos = [{ pista: j.estado.pista, z: 0.98 }];
+  };
+  fim();
+  j.quadro(3700);
+  assert.equal(j.estado.acabou, true);
+  for (const agora of [3800, 4000, 4200]) j.quadro(agora);
+  j.esperas.shift()();
+  assert.equal(j.elemento('painel-resultado').hidden, false);
+  assert.equal(j.video.srcObject, j.fluxo);
+  assert.equal(j.trilha.paradas, 0, 'A morte não encerra a captura.');
+  assert.equal(j.detector.fechamentos, 0, 'O detector continua disponível.');
+  assert.equal(j.contexto.window.location.href, '', 'O jogo não troca de página.');
+  assert.match(j.elemento('status-camera').textContent, /Câmera ativa/);
+  const primeiraPartida = new URLSearchParams(j.elemento('link-ranking').href.split('?')[1]).get('partida');
+  j.elemento('botao-reiniciar').eventos.click();
+  assert.equal(j.estado.acabou, false);
+  assert.equal(j.estado.contagem, 3);
+  assert.equal(j.elemento('painel-resultado').hidden, true);
+  j.quadro(4300);
+  assert.doesNotMatch(j.elemento('status-camera').textContent, /centralizar/, 'A calibração não é refeita.');
+  j.quadro(7300);
+  j.detector.detectForVideo = () => ({ landmarks: [pose('pular')] });
+  j.quadro(7400); j.quadro(7600);
+  assert.equal(j.estado.tempoPulo, 0.9, 'O controle pelo corpo funciona na nova corrida.');
+  assert.equal(aberturas, 1, 'A câmera só foi solicitada uma vez.');
+  assert.equal(carregamentos, 1, 'O detector só foi carregado uma vez.');
+  // Repete a morte e o reinício para detectar encerramentos e loops duplicados.
+  fim();
+  j.detector.detectForVideo = () => ({ landmarks: [inclinado] });
+  j.quadro(7700); j.quadro(7900);
+  j.esperas.shift()();
+  assert.notEqual(new URLSearchParams(j.elemento('link-ranking').href.split('?')[1]).get('partida'), primeiraPartida);
+  j.elemento('botao-reiniciar').eventos.click();
+  j.quadro(8000);
+  assert.equal(j.trilha.paradas, 0);
+  assert.equal(j.detector.fechamentos, 0);
+  assert.equal(j.quadros.size, 2, 'Há apenas um loop do jogo e um da câmera.');
+  j.quadro(11000);
+  assert.equal(j.estado.pista, -1, 'Ao reiniciar, sincroniza a pista com o corpo sem perder a calibração.');
+  j.eventos.get('pagehide')();
+  assert.equal(j.trilha.paradas, 1, 'Sair da página ainda desliga a câmera.');
+  assert.equal(j.detector.fechamentos, 1);
+
+  // Uma análise demorada não bloqueia a corrida nem acumula novas solicitações.
+  const k = ambiente(true);
+  await k.clicar();
+  k.estado.pausado = false;
+  k.estado.contagem = 0;
+  let leituras = 0;
+  let responder;
+  k.detector.detectForVideo = () => {
+    leituras++;
+    return new Promise(resolve => { responder = resolve; });
+  };
+  for (const agora of [0, 66, 132, 198]) k.quadro(agora);
+  assert.equal(leituras, 1, 'Só uma análise pode ficar em andamento.');
+  assert.ok(k.estado.distancia > 0, 'O loop da corrida continua durante a análise.');
+  assert.equal(k.quadros.size, 2);
+  responder({ landmarks: [pose()] });
+  await new Promise(resolve => setImmediate(resolve));
+  k.quadro(264);
+  assert.equal(leituras, 2, 'A próxima imagem só é enviada após a resposta.');
+  responder({ landmarks: [pose('pular')] });
+  await new Promise(resolve => setImmediate(resolve));
+  k.quadro(396);
+  responder({ landmarks: [pose('pular')] });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(k.estado.tempoPulo, 0.9, 'As respostas assíncronas continuam acionando o pulo.');
+  k.jogo.animarMovimento(k.estado, 0.9);
+  k.quadro(462);
+  k.jogo.desligarCamera();
+  k.desenho.length = 0;
+  responder({ landmarks: [pose('pular')] });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(k.desenho.length, 0, 'Uma resposta atrasada não desenha após desligar.');
+  assert.equal(k.estado.tempoPulo, 0);
+
+  const l = ambiente();
+  await l.clicar();
+  l.estado.pausado = false;
+  l.detector.detectForVideo = () => Promise.reject(new Error('Falha na análise'));
+  l.quadro(0);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(l.estado.pausado, true);
+  assert.equal(l.trilha.paradas, 1);
+  assert.equal(l.detector.fechamentos, 1);
+  assert.equal(l.quadros.size, 0);
   console.log('Testes de câmera, gestos, pulo e recuperação: OK');
 }
 testar().catch(erro => { console.error(erro); process.exitCode = 1; });

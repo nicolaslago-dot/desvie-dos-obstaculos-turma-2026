@@ -186,8 +186,9 @@ function elemento(id) {
   if (!elementos.has(id)) {
     elementos.set(id, {
       textContent: '', hidden: false,
-      addEventListener: vazio, setAttribute: vazio, appendChild: vazio,
-      classList: { add: vazio, toggle: vazio }
+      eventos: {}, focus: vazio,
+      addEventListener(tipo, fn) { this.eventos[tipo] = fn; }, setAttribute: vazio, appendChild: vazio,
+      classList: { add: vazio, remove: vazio, toggle: vazio }
     });
   }
   return elementos.get(id);
@@ -263,11 +264,14 @@ quadro(horario + 16);
 assert.equal(typeof fimAgendado, 'function');
 assert.equal(audiosJogo[3].reproducoes, 2, 'A colisão final também toca o efeito de colisão.');
 fimAgendado();
-assert.ok(contexto.window.location.href.startsWith('gameover.html?'));
+assert.equal(contexto.window.location.href, '', 'O resultado permanece na página da partida.');
+assert.equal(elemento('painel-resultado').hidden, false);
+assert.equal(elemento('pontuacao-final').textContent, elemento('pontos').textContent);
+const parametrosResultado = elemento('link-ranking').href.split('?')[1];
 
 const elementosResultado = new Map();
 const contextoResultado = vm.createContext({
-  window: { location: { search: '?' + contexto.window.location.href.split('?')[1] } },
+  window: { location: { search: '?' + parametrosResultado } },
   document: {
     getElementById(id) {
       if (!elementosResultado.has(id)) elementosResultado.set(id, {
@@ -294,5 +298,21 @@ assert.ok(!ler('index.html').includes('ranking-corpo'));
 assert.ok(!ler('gameover.html').includes('formulario-ranking'));
 assert.ok(!ler('gameover.html').includes('ranking-corpo'));
 assert.ok(!ler('gameover.html').includes('Fim de jogo'), 'A tela de resultado não mostra a mensagem de derrota.');
+
+const estadoAnterior = vm.runInContext('estado', contexto);
+elemento('botao-reiniciar').eventos.click();
+assert.equal(vm.runInContext('estado', contexto), estadoAnterior, 'Os controles continuam ligados ao mesmo estado.');
+assert.equal(elemento('painel-resultado').hidden, true);
+assert.equal(vm.runInContext('estado.acabou', contexto), false);
+assert.equal(vm.runInContext('estado.vidas', contexto), 1);
+assert.equal(vm.runInContext('estado.distancia', contexto), 0);
+assert.equal(vm.runInContext('estado.obstaculos.length', contexto), 0);
+assert.equal(vm.runInContext('estado.pecasColetadas.length', contexto), 0);
+assert.equal(elemento('pontos').textContent, '000000');
+assert.equal(elemento('numero-contagem').textContent, '3');
+assert.equal(elemento('painel-contagem').hidden, false);
+quadro(horario + 3000);
+quadro(horario + 16);
+assert.ok(vm.runInContext('estado.distancia', contexto) > 0, 'A corrida reiniciada volta a progredir.');
 
 console.log('Testes do jogo: OK');

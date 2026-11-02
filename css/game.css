@@ -259,6 +259,47 @@ body.pagina-jogo {
     font-size: 12px;
 }
 
+.resultado-partida {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.caixa-resultado {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.robo-resultado {
+    display: block;
+    width: min(130px, 45%);
+    height: auto;
+    margin: 0 auto 18px;
+}
+
+.caixa-resultado p {
+    margin-bottom: 12px;
+}
+
+.caixa-resultado strong {
+    color: #ffe76b;
+}
+
+.acoes-resultado {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.acoes-resultado a {
+    margin-top: 0;
+}
+
+.acoes-resultado :focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 4px;
+}
+
 
 .efeito-colisao {
     position: absolute;
