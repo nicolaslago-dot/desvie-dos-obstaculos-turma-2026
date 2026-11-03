@@ -2,6 +2,8 @@
 
 ## Sobre o projeto
 
+## Link do projeto: https://nicolaslago-dot.github.io/desvie-dos-obstaculos-turma-2026/
+
 Bem-vindos ao nosso projeto colaborativo de desenvolvimento de jogos!
 
 Nosso desafio é desenvolver um **jogo interativo utilizando HTML, CSS e JavaScript**, no qual o jogador deverá desviar de obstáculos utilizando movimentos do próprio corpo.
